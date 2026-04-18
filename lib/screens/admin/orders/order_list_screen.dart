@@ -167,6 +167,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                     spacing: 4,
                     crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
+                      if (order.orderStatus == 'confirmed')
+                        IconButton(
+                          icon: const Icon(Icons.delivery_dining_rounded, color: Colors.blue),
+                          tooltip: 'Assign Rider',
+                          onPressed: () => context.push('/admin/riders/assign/${order.id}'),
+                        ),
                       DropdownButton<String>(
                         value: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'return_approved', 'return_rejected', 'returned', 'replacement_requested', 'replacement_approved', 'replacement_rejected', 'replaced'].contains(order.orderStatus)
                             ? order.orderStatus

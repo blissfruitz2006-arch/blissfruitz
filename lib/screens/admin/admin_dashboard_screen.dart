@@ -9,6 +9,7 @@ import '../../widgets/glass_card.dart';
 import '../../widgets/admin/admin_dialogs.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
+import '../../providers/delivery_provider.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -28,6 +29,8 @@ class AdminDashboardScreen extends ConsumerWidget {
     final customersAsync = ref.watch(adminCustomersProvider);
     final messagesAsync = ref.watch(adminMessagesProvider);
     final productsAsync = ref.watch(adminProductsProvider);
+    final activeRidersCount = ref.watch(activeRiderCountProvider);
+    final outForDeliveryCount = ref.watch(outForDeliveryCountProvider);
 
     return CustomScrollView(
       slivers: [
@@ -128,7 +131,7 @@ class AdminDashboardScreen extends ConsumerWidget {
             delegate: SliverChildListDelegate([
               LayoutBuilder(builder: (context, constraints) {
                 final double width = constraints.maxWidth;
-                final int crossAxisCount = width > 1200 ? 4 : (width > 800 ? 3 : 2);
+                final int crossAxisCount = width > 1200 ? 3 : (width > 800 ? 2 : 1);
                 
                 return GridView.count(
                   crossAxisCount: crossAxisCount,
@@ -136,7 +139,7 @@ class AdminDashboardScreen extends ConsumerWidget {
                   physics: const NeverScrollableScrollPhysics(),
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
-                  childAspectRatio: width < 600 ? 1.1 : (width < 900 ? 1.2 : 1.4),
+                  childAspectRatio: width < 600 ? 1.1 : (width < 900 ? 1.2 : 1.5),
                   children: [
                     _buildHeroMetricCard(
                       context,
@@ -190,6 +193,32 @@ class AdminDashboardScreen extends ConsumerWidget {
                       Icons.chat_bubble_rounded,
                       const Color(0xFFEC4899),
                       [30, 20, 25, 15, 10, 5, 2],
+                    ),
+                    _buildHeroMetricCard(
+                      context,
+                      'Active Riders',
+                      activeRidersCount.when(
+                        data: (c) => c,
+                        loading: () => null,
+                        error: (_, _) => null,
+                      ),
+                      'Available for dispatch',
+                      Icons.delivery_dining_rounded,
+                      const Color(0xFF0EA5E9),
+                      [2, 5, 3, 8, 6, 10, 12],
+                    ),
+                    _buildHeroMetricCard(
+                      context,
+                      'Out for Delivery',
+                      outForDeliveryCount.when(
+                        data: (c) => c,
+                        loading: () => null,
+                        error: (_, _) => null,
+                      ),
+                      'Active tracking links',
+                      Icons.local_shipping_rounded,
+                      const Color(0xFF8B5CF6),
+                      [5, 10, 8, 15, 12, 20, 18],
                     ),
                   ],
                 );
@@ -862,6 +891,15 @@ class AdminDashboardScreen extends ConsumerWidget {
                     onTap: () {
                       Navigator.pop(context);
                       context.push('/admin/customers');
+                    }
+                  ),
+                  _QuickActionTile(
+                    icon: Icons.delivery_dining_rounded, 
+                    label: 'Rider', 
+                    color: Colors.orange,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push('/admin/riders/new');
                     }
                   ),
                 ],

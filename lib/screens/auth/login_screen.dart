@@ -45,10 +45,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await AuthService.signInWithEmail(email: email, password: password);
-      await ref.read(userProfileProvider.notifier).loadProfile();
+      final profile = await ref.read(userProfileProvider.notifier).loadProfileAndReturn();
 
       if (mounted) {
-        context.go('/');
+        if (profile?.role == 'rider') {
+          context.go('/rider/home');
+        } else if (profile?.role == 'admin') {
+          context.go('/admin/dashboard');
+        } else {
+          context.go('/');
+        }
       }
     } catch (e) {
       setState(() {

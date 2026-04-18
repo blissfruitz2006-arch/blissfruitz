@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_strategy/url_strategy.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -49,6 +50,14 @@ void main() async {
 
   // Initialize Supabase
   await SupabaseConfig.initialize();
+
+  // Initialize Firebase (Push Notifications)
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    debugPrint('Firebase initialization failed: $e');
+    debugPrint('Ensure google-services.json is present for Android push notifications.');
+  }
 
   runApp(
     const ProviderScope(

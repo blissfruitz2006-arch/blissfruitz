@@ -45,16 +45,22 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfile?>> {
   }
 
   Future<void> loadProfile() async {
+    await loadProfileAndReturn();
+  }
+
+  Future<UserProfile?> loadProfileAndReturn() async {
     try {
       if (!AuthService.isLoggedIn) {
         state = const AsyncValue.data(null);
-        return;
+        return null;
       }
       state = const AsyncValue.loading();
       final profile = await AuthService.syncAuthUser();
       state = AsyncValue.data(profile);
+      return profile;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      return null;
     }
   }
 
@@ -109,4 +115,10 @@ final isLoggedInProvider = Provider<bool>((ref) {
 final isAdminProvider = Provider<bool>((ref) {
   final profile = ref.watch(userProfileProvider);
   return profile.valueOrNull?.role == 'admin';
+});
+
+/// Convenience provider: whether the user is a rider
+final isRiderProvider = Provider<bool>((ref) {
+  final profile = ref.watch(userProfileProvider);
+  return profile.valueOrNull?.role == 'rider';
 });

@@ -146,6 +146,12 @@ class AdminLayout extends ConsumerWidget {
                     onTap: () => context.goNamed('admin-customers'),
                   ),
                   _SidebarItem(
+                    icon: Icons.delivery_dining_rounded, 
+                    label: 'Delivery Riders', 
+                    isActive: GoRouterState.of(context).matchedLocation.startsWith('/admin/riders'),
+                    onTap: () => context.push('/admin/riders'),
+                  ),
+                  _SidebarItem(
                     icon: Icons.print_rounded, 
                     label: 'Sticker Generator', 
                     isActive: GoRouterState.of(context).matchedLocation.startsWith('/admin/sticker-generator'),

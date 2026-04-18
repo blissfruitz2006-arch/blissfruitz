@@ -38,16 +38,26 @@ import '../screens/admin/reviews/review_manager_screen.dart';
 import '../screens/admin/messages/message_list_screen.dart';
 import '../screens/admin/settings/settings_screen.dart';
 import '../screens/admin/sticker_generator_screen.dart';
+import '../screens/admin/riders/rider_list_screen.dart';
+import '../screens/admin/riders/add_rider_screen.dart';
+import '../screens/admin/riders/assign_rider_screen.dart';
 import '../screens/public/static_page_screen.dart';
 import './static_content.dart';
 import '../screens/public/edit_profile_screen.dart';
 import '../screens/public/change_password_screen.dart';
 import '../screens/public/faq_screen.dart';
+import '../screens/rider/rider_home_screen.dart';
+import '../screens/rider/order_detail_screen.dart' as rider;
+import '../screens/rider/navigation_screen.dart';
+import '../screens/rider/earnings_screen.dart';
+import '../screens/public/tracking/live_tracking_screen.dart';
+import '../services/notification_service.dart';
 
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
+import '../models/delivery_assignment.dart';
 
 // Keys moved outside to persist across provider re-evaluations
 final rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -68,6 +78,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isLoggingIn = state.matchedLocation == '/login';
       final isRegistering = state.matchedLocation == '/register';
       final isAdminRoute = state.matchedLocation.startsWith('/admin');
+      final isRiderRoute = state.matchedLocation.startsWith('/rider');
       final isMaintenanceRoute = state.matchedLocation == '/maintenance';
 
       // 1. Check Maintenance Mode (Highest Priority)
@@ -76,6 +87,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       // Check if current user is admin to bypass maintenance
       final isAdmin = ref.read(isAdminProvider);
+      final isRider = ref.read(isRiderProvider);
 
       if (isMaintenanceEnabled && !isAdmin) {
         if (!isMaintenanceRoute && !state.matchedLocation.startsWith('/login')) {
@@ -96,14 +108,38 @@ final routerProvider = Provider<GoRouter>((ref) {
         }
       }
 
-      // 3. Protected customer routes
+      // 3. Security: Protect rider routes
+      if (isRiderRoute) {
+        if (profileAsync.isLoading) return null;
+        if (!isRider && !isAdmin) { // Admins can view rider routes for debugging
+          return isLoggedIn ? '/' : '/login';
+        }
+      }
+
+      // 4. Protected customer routes
       if (!isLoggedIn && (state.matchedLocation == '/checkout' || state.matchedLocation == '/profile')) {
         return '/login';
       }
 
-      // 4. Logged in users shouldn't see login/register
+      // 5. Post-Login Role-Based Redirection (Only on explicit login/register)
       if (isLoggedIn && (isLoggingIn || isRegistering)) {
-        return '/';
+        if (profileAsync.isLoading) {
+          debugPrint('Router: Profile loading during login...');
+          return null;
+        }
+        
+        final profile = profileAsync.valueOrNull;
+        final role = profile?.role;
+        debugPrint('Router: User role during login: $role');
+
+        if (role == 'admin') return '/admin/dashboard';
+        if (role == 'rider') {
+          if (profile?.supabaseId != null) {
+            ref.read(notificationServiceProvider).initialize(profile!.supabaseId!);
+          }
+          return '/rider/home';
+        }
+        if (role == 'customer') return '/';
       }
 
       return null;
@@ -211,6 +247,24 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: '/admin/settings',
             builder: (context, state) => const SettingsScreen(),
           ),
+          GoRoute(
+            name: 'admin-riders',
+            path: '/admin/riders',
+            builder: (context, state) => const RiderListScreen(),
+          ),
+          GoRoute(
+            name: 'admin-add-rider',
+            path: '/admin/riders/new',
+            builder: (context, state) => const AddRiderScreen(),
+          ),
+          GoRoute(
+            name: 'admin-assign-rider',
+            path: '/admin/riders/assign/:orderId',
+            builder: (context, state) {
+              final idStr = state.pathParameters['orderId']!;
+              return AssignRiderScreen(orderId: int.parse(idStr));
+            },
+          ),
         ],
       ),
       // Shell route wraps all public pages with responsive scaffold
@@ -312,6 +366,17 @@ final routerProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
+            path: '/track/:orderId',
+            builder: (context, state) {
+              final id = state.pathParameters['orderId']!;
+              return LiveTrackingScreen(orderId: int.parse(id));
+            },
+          ),
+          GoRoute(
+            path: '/live-tracking/:id',
+            redirect: (context, state) => '/track/${state.pathParameters['id']}',
+          ),
+          GoRoute(
             path: '/track',
             builder: (context, state) => const OrderTrackingLookupScreen(),
           ),
@@ -373,6 +438,41 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
         ],
+      ),
+      // Rider routes
+      GoRoute(
+        path: '/rider',
+        redirect: (context, state) {
+          // Avoid double slash issues on web by checking current location
+          if (state.matchedLocation == '/rider') return '/rider/home';
+          return null;
+        },
+      ),
+      GoRoute(
+        name: 'rider-home',
+        path: '/rider/home',
+        builder: (context, state) => const RiderHomeScreen(),
+      ),
+      GoRoute(
+        name: 'rider-order-detail',
+        path: '/rider/orders/:id',
+        builder: (context, state) {
+          final assignment = state.extra as DeliveryAssignment;
+          return rider.OrderDetailScreen(assignment: assignment);
+        },
+      ),
+      GoRoute(
+        name: 'rider-navigation',
+        path: '/rider/navigate/:id',
+        builder: (context, state) {
+          final assignment = state.extra as DeliveryAssignment;
+          return NavigationScreen(assignment: assignment);
+        },
+      ),
+      GoRoute(
+        name: 'rider-earnings',
+        path: '/rider/earnings',
+        builder: (context, state) => const EarningsScreen(),
       ),
     ],
   );

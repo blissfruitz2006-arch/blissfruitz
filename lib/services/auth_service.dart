@@ -249,12 +249,20 @@ class AuthService {
       existing ??= await _client.from('User').select().eq('email', email).maybeSingle();
 
       if (existing != null) {
-        updates['role'] = existing['role'] ?? 'customer';
+        // Prefer metadata role if DB role is just 'customer' (useful for first-time onboarding)
+        final dbRole = existing['role'];
+        final metaRole = metadata['role'];
+        if (dbRole == 'customer' && metaRole != null) {
+          updates['role'] = metaRole;
+        } else {
+          updates['role'] = dbRole ?? 'customer';
+        }
       } else {
-        updates['role'] = 'customer';
+        updates['role'] = metadata['role'] ?? 'customer';
       }
 
       final data = await _client.from('User').upsert(updates, onConflict: 'email').select().single();
+      debugPrint('AuthService: Profile synced successfully. Data: $data');
       return UserProfile.fromJson(data);
     } catch (e) {
       debugPrint('AuthService: Profile sync failed: $e');

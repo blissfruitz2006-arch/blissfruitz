@@ -28,6 +28,7 @@ class UserProfile {
   });
 
   bool get isAdmin => role == 'admin';
+  bool get isRider => role == 'rider';
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
     return UserProfile(

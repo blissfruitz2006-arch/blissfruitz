@@ -165,6 +165,46 @@ class Order {
         if (adminNotes != null) 'adminNotes': adminNotes,
       };
 
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'orderNumber': orderNumber,
+        'userId': userId,
+        'guestEmail': guestEmail,
+        'shippingName': shippingName,
+        'shippingPhone': shippingPhone,
+        'shippingAddress': shippingAddress,
+        'shippingCity': shippingCity,
+        'shippingState': shippingState,
+        'shippingPincode': shippingPincode,
+        'notes': notes,
+        'subtotal': subtotal,
+        'shippingAmount': shippingAmount,
+        'discountAmount': discountAmount,
+        'total': total,
+        'couponCode': couponCode,
+        'orderStatus': orderStatus,
+        'paymentStatus': paymentStatus,
+        'paymentMethod': paymentMethod,
+        'razorpayOrderId': razorpayOrderId,
+        'razorpayPaymentId': razorpayPaymentId,
+        'trackingNumber': trackingNumber,
+        'locationLink': locationLink,
+        'latitude': latitude,
+        'longitude': longitude,
+        'refundStatus': refundStatus,
+        'cancelReason': cancelReason,
+        'refundId': refundId,
+        'returnReason': returnReason,
+        'returnNotes': returnNotes,
+        'replacementReason': replacementReason,
+        'replacementNotes': replacementNotes,
+        'adminNotes': adminNotes,
+        'createdAt': createdAt?.toIso8601String(),
+        'updatedAt': updatedAt?.toIso8601String(),
+        'deliveredAt': deliveredAt?.toIso8601String(),
+        'OrderItem': items.map((e) => e.toJson()).toList(),
+      };
+
   Order copyWith({
     int? id,
     String? orderNumber,
@@ -280,6 +320,8 @@ class Order {
         return 'Refund Approved';
       case 'refund_rejected':
         return 'Refund Rejected';
+      case 'out_for_delivery':
+        return 'Out for Delivery';
       case 'failed':
         return 'Failed';
       default:
@@ -317,6 +359,8 @@ class Order {
       case 'returned':
       case 'replaced':
         return Colors.teal;
+      case 'out_for_delivery':
+        return Colors.indigo;
       case 'failed':
         return Colors.red;
       default:
@@ -371,6 +415,8 @@ class Order {
       case 'returned':
       case 'replaced':
         return Icons.backspace_outlined;
+      case 'out_for_delivery':
+        return Icons.delivery_dining_rounded;
       case 'failed':
         return Icons.error_outline_rounded;
       default:
@@ -448,6 +494,15 @@ class OrderItem {
   }
 
   Map<String, dynamic> toInsertJson() => {
+        'productId': productId,
+        'name': name,
+        'price': price,
+        'quantity': quantity,
+      };
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'orderId': orderId,
         'productId': productId,
         'name': name,
         'price': price,
