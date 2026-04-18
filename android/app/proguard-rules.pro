@@ -1,0 +1,51 @@
+# Flutter Wrapper
+-keep class io.flutter.app.** { *; }
+-keep class io.flutter.plugin.** { *; }
+-keep class io.flutter.util.** { *; }
+-keep class io.flutter.view.** { *; }
+-keep class io.flutter.** { *; }
+-keep class io.flutter.plugins.** { *; }
+
+# Razorpay
+-keep class com.razorpay.** {*;}
+-dontwarn com.razorpay.**
+
+# Supabase / Postgrest (if needed)
+-keep class io.github.jan.supabase.** { *; }
+
+# General models (prevent shrinking of fields used in JSON)
+-keepclassmembers class * {
+  @com.google.gson.annotations.SerializedName <fields>;
+}
+
+# Fix for geolocator/geocoding
+-keep class com.baseflow.geolocator.** { *; }
+-keep class com.baseflow.geocoding.** { *; }
+
+# Google Play Core (Fix for R8 missing classes)
+-keep class com.google.android.play.core.common.IntentSenderForResultStarter { *; }
+-keep class com.google.android.play.core.tasks.** { *; }
+-keep class com.google.android.play.core.install.** { *; }
+-keep class com.google.android.play.core.appupdate.** { *; }
+-keep class com.google.android.play.core.splitinstall.** { *; }
+-keep class com.google.android.play.core.review.** { *; }
+-dontwarn com.google.android.play.core.**
+
+# Google Play Services
+-keep class com.google.android.gms.location.** { *; }
+-keep class com.google.android.gms.tasks.** { *; }
+-dontwarn com.google.android.gms.**
+
+# Kotlin Coroutines
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
+
+# Protobuf
+-dontwarn com.google.protobuf.**
+
+# Keep standard library attributes
+-keepattributes Signature
+-keepattributes *Annotation*
+-keepattributes EnclosingMethod
+-keepattributes InnerClasses
+-keepattributes SourceFile,LineNumberTable

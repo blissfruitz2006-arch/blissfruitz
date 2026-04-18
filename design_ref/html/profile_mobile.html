@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Account - BlissFruitz</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be_Vietnam_Pro:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "inverse-surface": "#0b0f0e",
+                    "tertiary-fixed": "#ff9385",
+                    "primary-fixed-dim": "#90e28a",
+                    "on-secondary-container": "#6a3c00",
+                    "on-background": "#2c2f2e",
+                    "surface": "#f5f7f5",
+                    "secondary-container": "#ffc791",
+                    "on-surface-variant": "#595c5b",
+                    "surface-variant": "#d9dedb",
+                    "tertiary-container": "#ff9385",
+                    "surface-tint": "#176a21",
+                    "on-secondary-fixed-variant": "#774400",
+                    "on-primary": "#d1ffc8",
+                    "secondary-dim": "#764400",
+                    "on-tertiary-fixed": "#3a0001",
+                    "outline-variant": "#abaeac",
+                    "surface-bright": "#f5f7f5",
+                    "tertiary": "#b71211",
+                    "on-error": "#ffefec",
+                    "on-surface": "#2c2f2e",
+                    "on-secondary": "#fff0e5",
+                    "surface-container-highest": "#d9dedb",
+                    "on-error-container": "#520c00",
+                    "secondary": "#874e00",
+                    "error": "#b02500",
+                    "on-primary-fixed-variant": "#12661e",
+                    "primary-dim": "#025d16",
+                    "tertiary-fixed-dim": "#ff7c6c",
+                    "on-tertiary-fixed-variant": "#7a0003",
+                    "inverse-primary": "#9df197",
+                    "secondary-fixed-dim": "#ffb467",
+                    "error-container": "#f95630",
+                    "on-primary-fixed": "#00460e",
+                    "on-secondary-fixed": "#4f2c00",
+                    "primary": "#176a21",
+                    "surface-container": "#e6e9e7",
+                    "tertiary-dim": "#a40007",
+                    "primary-fixed": "#9df197",
+                    "background": "#f5f7f5",
+                    "error-dim": "#b92902",
+                    "primary-container": "#9df197",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed": "#ffc791",
+                    "inverse-on-surface": "#9b9d9c",
+                    "on-tertiary-container": "#690002",
+                    "surface-container-high": "#e0e3e1",
+                    "outline": "#747776",
+                    "surface-dim": "#d1d5d3",
+                    "on-primary-container": "#005c15",
+                    "on-tertiary": "#ffefed",
+                    "surface-container-low": "#eff1ef"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Be Vietnam Pro"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        h1, h2, h3 { font-family: 'Plus Jakarta Sans', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface min-h-screen pb-32">
+<!-- TopAppBar -->
+<header class="fixed top-0 w-full z-50 bg-emerald-50/80 dark:bg-zinc-950/80 backdrop-blur-md shadow-[0_20px_40px_rgba(44,47,46,0.06)] flex justify-between items-center px-6 h-16 w-full">
+<button class="text-emerald-900 dark:text-emerald-400 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/30 transition-colors p-2 rounded-full active:scale-95 duration-200">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<h1 class="text-xl font-black text-emerald-900 dark:text-emerald-500 font-['Plus_Jakarta_Sans'] tracking-tight">BlissFruitz</h1>
+<div class="h-10 w-10 rounded-full overflow-hidden border-2 border-primary-fixed">
+<img alt="Admin User Profile" class="w-full h-full object-cover" data-alt="Close up portrait of a friendly professional man with a clean beard and smiling eyes in soft natural studio lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVL5RfjANlwPeb1LZ3O-_MbZov1IcjV0wge3iUFhAyqYtlV0o_QmY-2kVuvUYL7tlWWOugShGqS7vFrRV6-9M9mnf-hNgHupcuhUOd_lEljzDCfTL-XmIWbke0I4k1-tQLGt8-5OvNh24Lcdpw2vKxo70bF4Ni40dHbRQuwqsq_qE99rXq4n7nf2nQgyr3tR8EP6q4adqeqO3n4_qHkKJIK-DMSZMio6-kBr_lLwOEUqUQBaksQh3Ttw6-7Y1dUcDC7VJttT1cbCHF"/>
+</div>
+</header>
+<main class="pt-24 px-6 max-w-md mx-auto">
+<!-- Profile Header Section -->
+<section class="flex items-center gap-5 mb-8">
+<div class="relative">
+<div class="w-20 h-20 rounded-full border-4 border-surface-container-lowest shadow-lg overflow-hidden">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="Professional profile headshot of a person against a minimalist soft green background with warm highlights" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDHyrWOOR8dDRYIPE99auwh7iGuSXyaI5GUdo6oQO-IpWzcIDWFky5iUcCHB_mmbWDKbaGmdVL_qFKn3fcB-usDyU5HxCd0J5UneYVe8Zkef3k34O5FoW_XipmQcQtA_htxvst0-CMk68mw4581jmRY42ubHWCi9J9Lyb3-oHfNOlNrltFeN-7flw8HPPUteKbitUOUOGKZCa_0KkipcHMQ8V4ly8l-NmxgtgRdVUSMFAqqZslnQlz1aXW4rBqtynsSU2xk2lDCYWAf"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-secondary-fixed text-on-secondary-fixed p-1 rounded-full shadow-sm border-2 border-surface">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">verified</span>
+</div>
+</div>
+<div>
+<h2 class="text-2xl font-bold tracking-tight text-on-surface">Alex Rivera</h2>
+<div class="inline-flex items-center gap-1.5 px-3 py-1 bg-secondary-container text-on-secondary-container rounded-full text-xs font-bold uppercase tracking-wider">
+<span class="material-symbols-outlined text-[14px]" style="font-variation-settings: 'FILL' 1;">stars</span>
+                    Gold Member
+                </div>
+</div>
+</section>
+<!-- Loyalty Card (Bento Style) -->
+<section class="mb-10">
+<div class="bg-primary text-on-primary p-6 rounded-xl relative overflow-hidden shadow-xl shadow-primary/10">
+<!-- Abstract fruit background element -->
+<div class="absolute -right-6 -top-6 opacity-20 transform rotate-12">
+<span class="material-symbols-outlined text-9xl">potted_plant</span>
+</div>
+<div class="relative z-10">
+<p class="text-xs font-medium opacity-80 mb-1">Harvest Rewards</p>
+<div class="flex items-baseline gap-2 mb-4">
+<span class="text-4xl font-extrabold tracking-tight">2,450</span>
+<span class="text-sm font-medium opacity-90">Seeds</span>
+</div>
+<div class="h-2 w-full bg-on-primary/20 rounded-full mb-3 overflow-hidden">
+<div class="h-full bg-primary-fixed w-3/4 rounded-full"></div>
+</div>
+<div class="flex justify-between items-center">
+<p class="text-[11px] opacity-80">550 seeds until Platinum status</p>
+<button class="bg-surface-container-lowest/10 hover:bg-surface-container-lowest/20 transition-colors px-3 py-1 rounded-full text-[11px] font-bold border border-on-primary/20">
+                            REDEEM
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Quick Stats / Tonal Layering -->
+<div class="grid grid-cols-2 gap-4 mb-10">
+<div class="bg-surface-container-low p-4 rounded-xl">
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Total Orders</p>
+<p class="text-xl font-extrabold text-primary">24</p>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl">
+<p class="text-[11px] text-on-surface-variant font-bold uppercase tracking-widest mb-1">Active Fresh</p>
+<p class="text-xl font-extrabold text-secondary">3 items</p>
+</div>
+</div>
+<!-- Recent Orders Section -->
+<section class="mb-10">
+<div class="flex justify-between items-center mb-5">
+<h3 class="text-lg font-bold text-on-surface">Recent Orders</h3>
+<button class="text-primary text-sm font-bold">View All</button>
+</div>
+<div class="space-y-4">
+<!-- Order Card 1 -->
+<div class="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-14 h-14 bg-surface-container-low rounded-lg flex items-center justify-center overflow-hidden">
+<img alt="Fresh Oranges" class="w-full h-full object-cover" data-alt="Top down shot of bright vibrant navel oranges with one sliced in half on a clean white surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCbRTmdlJcB_hxElPxh8UHsG3aReKqEZ9T0VF-IF8NLRFwWlbAdkd91gxkuSUOLnq9j1rQDCMUeESs71M5_rM4JaZEmoLxMqZwc2_aImfW2_KVasrGAWYCGMphjl22TMZTTTILgPLlzMIT3TWFCsIUHTTb_PxuVmOHvRXYiaw085nNHyalmG9gkTyNFFtD5qKRqhiWZJN5M7e_hHzQCKR9RcQNGKo4qH_ttPLa4OD346hecpvZtuOjyV5SmE6UjFaOA-LveV1ZXDHAY"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-on-surface text-sm">Orchard Basket #429</h4>
+<span class="text-xs font-bold text-primary bg-primary-container px-2 py-0.5 rounded-full">Delivered</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-0.5">Oct 12, 2023 • $34.50</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+<!-- Order Card 2 -->
+<div class="flex items-center gap-4 p-4 bg-surface-container-lowest rounded-xl shadow-sm">
+<div class="w-14 h-14 bg-surface-container-low rounded-lg flex items-center justify-center overflow-hidden">
+<img alt="Green Grapes" class="w-full h-full object-cover" data-alt="Bunch of plump green grapes with water droplets in soft diffused natural light" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDaP3DCOj9ZQIZo6RFnxNy0acfapryHFLpNakzSri7aVgkPA_7_f5iPWNSIIAnBK22FFbmNWqEjK1VBsNP5iONZBH9tUtzc93uZ-40mhGGgfGgeel1keyzE0je45sJQ_p2aSlhrsbgzcUOSUMFtvctXHTF0fQ3sN_h6sUd34I163xrMsU4Ow-t6hArM-nvTtOVU5qTJ_Vz94PXIqigiWm31qyaIuGLsmzajRZNhOYudcw_MCa560P_B77wQwQ0c9zXUEXJly7KbMV7r"/>
+</div>
+<div class="flex-1">
+<div class="flex justify-between items-start">
+<h4 class="font-bold text-on-surface text-sm">Monthly Fresh Pack</h4>
+<span class="text-xs font-bold text-secondary bg-secondary-container px-2 py-0.5 rounded-full">In Transit</span>
+</div>
+<p class="text-xs text-on-surface-variant mt-0.5">Oct 18, 2023 • $12.00</p>
+</div>
+<span class="material-symbols-outlined text-outline-variant">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Addresses Section -->
+<section class="mb-6">
+<div class="flex justify-between items-center mb-5">
+<h3 class="text-lg font-bold text-on-surface">Addresses</h3>
+<button class="bg-primary text-on-primary w-8 h-8 rounded-full flex items-center justify-center active:scale-90 transition-transform">
+<span class="material-symbols-outlined text-lg">add</span>
+</button>
+</div>
+<div class="space-y-3">
+<div class="p-4 bg-surface-container-low rounded-xl border border-transparent hover:border-primary/20 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">home</span>
+<div>
+<p class="font-bold text-sm">Home</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">482 Orchard Dr, Sunnyvale, CA 94087</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-sm text-outline">edit</span>
+</div>
+</div>
+<div class="p-4 bg-surface-container-low rounded-xl border border-transparent hover:border-primary/20 transition-all">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">apartment</span>
+<div>
+<p class="font-bold text-sm">Office</p>
+<p class="text-xs text-on-surface-variant leading-relaxed">101 Harvest St, San Francisco, CA 94103</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-sm text-outline">edit</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Support / Settings Links -->
+<section class="space-y-1 mb-8">
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">contact_support</span>
+<span class="font-medium text-sm">Support &amp; FAQ</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-container-low rounded-xl transition-colors">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+<span class="font-medium text-sm">Notifications</span>
+</div>
+<span class="material-symbols-outlined text-outline-variant text-sm">chevron_right</span>
+</button>
+<button class="w-full flex items-center justify-between p-4 hover:bg-surface-container-low rounded-xl transition-colors text-tertiary">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined">logout</span>
+<span class="font-medium text-sm">Sign Out</span>
+</div>
+</button>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 pb-6 pt-3 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-md rounded-t-[32px] z-50 shadow-[0_-10px_30px_rgba(44,47,46,0.04)]">
+<a class="flex flex-col items-center justify-center text-emerald-800/50 dark:text-zinc-500 hover:bg-emerald-50 dark:hover:bg-zinc-800 tap-highlight-transparent active:scale-90 transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="potted_plant">potted_plant</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium mt-1">Shop</span>
+</a>
+<a class="flex flex-col items-center justify-center text-emerald-800/50 dark:text-zinc-500 hover:bg-emerald-50 dark:hover:bg-zinc-800 tap-highlight-transparent active:scale-90 transition-all p-2 rounded-xl relative" href="#">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium mt-1">Basket</span>
+<span class="absolute top-1 right-2 w-2 h-2 bg-tertiary rounded-full"></span>
+</a>
+<a class="flex flex-col items-center justify-center text-emerald-800/50 dark:text-zinc-500 hover:bg-emerald-50 dark:hover:bg-zinc-800 tap-highlight-transparent active:scale-90 transition-all p-2 rounded-xl" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium mt-1">Fresh</span>
+</a>
+<a class="flex flex-col items-center justify-center bg-emerald-100 dark:bg-emerald-900/50 text-emerald-900 dark:text-emerald-100 rounded-full px-5 py-1.5 tap-highlight-transparent active:scale-90 transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="person" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-['Be_Vietnam_Pro'] text-[11px] font-medium">Account</span>
+</a>
+</nav>
+</body></html>

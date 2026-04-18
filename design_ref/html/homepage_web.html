@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BlissFruitz | Premium Digital Orchard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-container": "#005c15",
+                        "on-secondary-fixed-variant": "#774400",
+                        "inverse-surface": "#0b0f0e",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary": "#fff0e5",
+                        "surface-bright": "#f5f7f5",
+                        "surface-tint": "#176a21",
+                        "primary": "#176a21",
+                        "primary-container": "#9df197",
+                        "tertiary-fixed-dim": "#ff7c6c",
+                        "surface-container-high": "#e0e3e1",
+                        "surface-container-low": "#eff1ef",
+                        "secondary-container": "#ffc791",
+                        "on-primary": "#d1ffc8",
+                        "on-tertiary-container": "#690002",
+                        "on-primary-fixed": "#00460e",
+                        "surface-container": "#e6e9e7",
+                        "surface-container-highest": "#d9dedb",
+                        "secondary-fixed": "#ffc791",
+                        "primary-fixed": "#9df197",
+                        "error-container": "#f95630",
+                        "on-error-container": "#520c00",
+                        "background": "#f5f7f5",
+                        "on-background": "#2c2f2e",
+                        "primary-fixed-dim": "#90e28a",
+                        "tertiary-container": "#ff9385",
+                        "surface-dim": "#d1d5d3",
+                        "surface-variant": "#d9dedb",
+                        "tertiary-dim": "#a40007",
+                        "secondary-fixed-dim": "#ffb467",
+                        "inverse-primary": "#9df197",
+                        "tertiary-fixed": "#ff9385",
+                        "on-primary-fixed-variant": "#12661e",
+                        "error-dim": "#b92902",
+                        "surface": "#f5f7f5",
+                        "on-surface": "#2c2f2e",
+                        "secondary": "#874e00",
+                        "tertiary": "#b71211",
+                        "inverse-on-surface": "#9b9d9c",
+                        "error": "#b02500",
+                        "outline-variant": "#abaeac",
+                        "on-tertiary": "#ffefed",
+                        "on-tertiary-fixed": "#3a0001",
+                        "secondary-dim": "#764400",
+                        "on-error": "#ffefec",
+                        "primary-dim": "#025d16",
+                        "outline": "#747776",
+                        "on-secondary-fixed": "#4f2c00",
+                        "on-surface-variant": "#595c5b",
+                        "on-tertiary-fixed-variant": "#7a0003",
+                        "on-secondary-container": "#6a3c00"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "1rem",
+                        "lg": "2rem",
+                        "xl": "3rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "headline": ["Plus Jakarta Sans"],
+                        "body": ["Be Vietnam Pro"],
+                        "label": ["Plus Jakarta Sans"]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Be Vietnam Pro', sans-serif; background-color: #f5f7f5; color: #2c2f2e; }
+        h1, h2, h3, .brand { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-nav { backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+    </style>
+</head>
+<body class="selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopNavBar -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-[0_20px_40px_rgba(44,47,46,0.06)] flex justify-between items-center px-8 py-4 max-w-full">
+<div class="text-2xl font-black tracking-tighter text-green-800 dark:text-green-400">BlissFruitz</div>
+<div class="hidden md:flex gap-8 items-center plus-jakarta-sans text-sm font-medium tracking-tight">
+<a class="text-green-800 dark:text-green-400 font-bold border-b-2 border-green-800 dark:border-green-400 pb-1 transition-all duration-300" href="#">Home</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Shop</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Categories</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Offers</a>
+</div><div class="hidden lg:flex items-center flex-1 max-w-md mx-8">
+<div class="relative w-full group">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-stone-400 group-focus-within:text-green-800 transition-colors">
+<span class="material-symbols-outlined text-xl" data-icon="search">search</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-2 border-none bg-stone-100 dark:bg-stone-800 rounded-full text-sm placeholder-stone-500 focus:ring-2 focus:ring-green-800/20 dark:focus:ring-green-400/20 transition-all" placeholder="Search your digital orchard..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300 scale-95 active:scale-90 text-green-800 dark:text-green-400">
+<span class="material-symbols-outlined" data-icon="shopping_basket">shopping_basket</span>
+</button>
+<button class="p-2 rounded-full hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-300 scale-95 active:scale-90 text-green-800 dark:text-green-400">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</nav>
+<main class="pt-24">
+<!-- Hero Carousel Section -->
+<section class="px-6 md:px-12 py-8">
+<div class="relative overflow-hidden rounded-xl bg-primary-container h-[500px] md:h-[600px] flex items-center group">
+<div class="grid grid-cols-1 md:grid-cols-2 w-full px-8 md:px-16 z-10">
+<div class="space-y-6">
+<span class="text-on-primary-container font-bold uppercase tracking-widest text-sm">Harvest of the Month</span>
+<h1 class="text-5xl md:text-7xl font-extrabold text-on-primary-container leading-tight tracking-tighter">Ruby Red <br/>Sicilian Citrus</h1>
+<p class="text-on-primary-container/80 text-lg max-w-md">Sun-drenched Mediterranean flavors delivered directly from the grove to your doorstep. Experience peak ripeness.</p>
+<button class="bg-primary text-on-primary px-8 py-4 rounded-full font-bold shadow-lg hover:shadow-primary/20 transition-all active:scale-95">Explore Harvest</button>
+</div>
+</div>
+<!-- Overlapping Imagery -->
+<div class="absolute -right-20 md:right-10 bottom-0 md:-bottom-10 w-full md:w-1/2 flex justify-end items-end pointer-events-none">
+<img alt="Ruby Red Citrus" class="w-4/5 object-contain transform rotate-12 drop-shadow-2xl" data-alt="Close-up of vibrant sliced blood oranges and whole citrus fruits with glossy leaves on a soft pastel green background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-_CBN9HrML9sM-iM5sNr4vsoeXx_qIQY5E37cups3dYlP_5E536CeVTTCr7eSdKrf4Yjlw_7N_rUAYkgjlaqzqm4ykjUo96NL1bapsCG6I_1glggPgpuSdFwXDlYo2H8xYqfhTuMLbMSwfbVTMLF6OSk2FIndhd7spxruAB_GYj9RKIakTzRMIy9WxTT93oS-OJn4GoyNoMgcQE-nRdHOsyK2Ahp1TojCrB2-X6rga3NsqDofWtoobS9GRKTdgmOXXKwGCRzZMIpD"/>
+</div>
+<!-- Decorative Layer -->
+<div class="absolute top-0 right-0 w-1/3 h-full bg-white/10 backdrop-blur-sm -skew-x-12 transform translate-x-20"></div>
+</div>
+</section>
+<!-- Benefit Bar -->
+<section class="px-6 md:px-12 py-6">
+<div class="bg-surface-container-low rounded-lg p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
+<div class="flex items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container">
+<span class="material-symbols-outlined" data-icon="workspace_premium">workspace_premium</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Premium Quality</h3>
+<p class="text-sm text-on-surface-variant">Hand-selected AAA grade produce only.</p>
+</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined" data-icon="eco">eco</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Farm Fresh</h3>
+<p class="text-sm text-on-surface-variant">Picked at peak sugar levels this morning.</p>
+</div>
+</div>
+<div class="flex items-center gap-4 group">
+<div class="w-12 h-12 rounded-full bg-tertiary-container flex items-center justify-center text-on-tertiary-container">
+<span class="material-symbols-outlined" data-icon="local_shipping">local_shipping</span>
+</div>
+<div>
+<h3 class="font-bold text-on-surface">Cold-Chain Speed</h3>
+<p class="text-sm text-on-surface-variant">Temperature controlled 4-hour delivery.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Trending Section -->
+<section class="px-6 md:px-12 py-16">
+<div class="flex justify-between items-end mb-12">
+<div>
+<h2 class="text-4xl font-black text-on-surface tracking-tighter">Trending Now</h2>
+<p class="text-on-surface-variant mt-2">The season's most sought-after flavors.</p>
+</div>
+<div class="flex gap-2">
+<button class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-sm text-sm font-bold transition-all hover:bg-secondary">Berries</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 rounded-sm text-sm font-bold transition-all hover:bg-secondary-container">Tropical</button>
+<button class="bg-surface-container-high text-on-surface-variant px-4 py-2 rounded-sm text-sm font-bold transition-all hover:bg-secondary-container">Melons</button>
+</div>
+</div>
+<!-- Bento-style Grid -->
+<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+<!-- Large Feature Card -->
+<div class="md:col-span-2 md:row-span-2 bg-white rounded-lg overflow-hidden relative shadow-[0_20px_40px_rgba(44,47,46,0.06)] group">
+<div class="absolute top-6 left-6 z-10">
+<span class="bg-secondary text-white text-xs px-3 py-1 rounded-full font-bold uppercase tracking-widest">New Arrival</span>
+<h3 class="text-3xl font-extrabold text-on-surface mt-4">Midnight Black Cherries</h3>
+<p class="text-on-surface-variant mt-2 font-medium">$14.99 / lb</p>
+</div>
+<img class="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700" data-alt="Dramatic high-contrast photo of dark ripe cherries with water droplets on a deep moody background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCpzV7wVU3eFcRH5Wwd_n0x30L3AKr_7Ie0BfL1BsaorsISuAU77YI1b4MmQ7TmQwvzXtxHjBvVIJuopqvJ_laXqbwbc_kT3sguFxHwLdhpb-cJqKcj3yPsd9vfSDLyjsTEsNVnGr3fK74oTYoSeOuT3o8xIcqKr_wOogxj6G2Thzb4wBOQ2cLf2-TUnRz3Ta0swOZgF6aFX-gLdLcqRX5risAdFR8VfhRo9yPeFVwCl0bhfcKbu3Wy-338Vs1hmZnCLPsEF9l1E5E7"/>
+<div class="absolute bottom-6 right-6">
+<button class="bg-primary text-white px-6 py-3 rounded-full font-bold shadow-lg mr-4 transform translate-y-20 group-hover:translate-y-0 transition-all duration-300 hover:scale-105 active:scale-95">Buy Now</button><button class="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center shadow-lg transform translate-y-20 group-hover:translate-y-0 transition-transform">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</div>
+</div>
+<!-- Product Card 1 -->
+<div class="bg-white rounded-lg p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_40px_rgba(44,47,46,0.06)] group">
+<img class="h-40 object-contain mb-4 transform group-hover:-rotate-6 transition-transform" data-alt="Isolated fresh strawberries with bright green stems on a clean minimal background" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUEfPSkWfVrea-4_WZFOtlz8-MAF6kwFwnvCKy8ulS1ouUSxa6HWaORHeddoR_nsF6aeQ52CY__nVTTvWbWi3a9TZzB5P8Kt6hErIUbkJ4naHgTwMnnkGtQP4eG36jFqjJ6igAQJBPH13gwD3crMw2e6aukcIJYxXypV0kknx6pYO0GiTxrAq442bGtoDLbN9pgPVaVqNKkxUr0bYSG7Ic8DEkdz28nDxwFTfAS_6VYz07LIUzmMY_1lyC7u-cbmD5jK1776jPCqDq"/>
+<h4 class="font-bold text-on-surface">Alpine Strawberries</h4>
+<p class="text-sm text-on-surface-variant">$8.50 / basket</p>
+<div class="mt-6 flex flex-wrap gap-2 justify-center">
+<button class="px-4 py-2 bg-surface-container text-on-surface-variant rounded-full text-xs font-bold hover:bg-surface-container-high transition-colors">Add to Basket</button>
+<button class="px-4 py-2 bg-primary text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">Buy Now</button>
+</div>
+</div>
+<!-- Product Card 2 -->
+<div class="bg-white rounded-lg p-6 flex flex-col items-center justify-center text-center shadow-[0_20px_40px_rgba(44,47,46,0.06)] group">
+<img class="h-40 object-contain mb-4 transform group-hover:rotate-6 transition-transform" data-alt="Whole and sliced golden dragon fruit showing white flesh and black seeds on neutral surface" src="https://lh3.googleusercontent.com/aida-public/AB6AXuChiupBoO5Nr02nsvhW5eecPVyfwBcc8wFixQIbJCUgx8bBjexLRSsyH5eSaUQnVLe9U77olqw7Kt2QIT_yl8tMdCqtRAYM0MmlgNCJT6RTD5QSTbZTMfv0MmkIDLRQUIaMOL_jvf7Vvfg7kCTbiZv0XJp6lmO7Ygtd-HG_XTOrlZZ98eztK1s-EISlQIlWZmbrlbQ1tj_O_MfK5E8I_2L6dbfs6g6c1ux3A-hbXsQlcJo5XJG7IczDrARKw3phWEWidWL7KSF879hn"/>
+<h4 class="font-bold text-on-surface">Golden Dragon Fruit</h4>
+<p class="text-sm text-on-surface-variant">$12.00 / unit</p>
+<div class="mt-6 flex flex-wrap gap-2 justify-center">
+<button class="px-4 py-2 bg-surface-container text-on-surface-variant rounded-full text-xs font-bold hover:bg-surface-container-high transition-colors">Add to Basket</button>
+<button class="px-4 py-2 bg-primary text-white rounded-full text-xs font-bold hover:shadow-lg transition-all">Buy Now</button>
+</div>
+</div>
+<!-- Banner Item -->
+<div class="md:col-span-2 bg-secondary-container/30 rounded-lg p-8 flex items-center justify-between group overflow-hidden">
+<div class="max-w-[60%]">
+<h3 class="text-2xl font-bold text-secondary-dim leading-none mb-2">Build Your Own Juice Box</h3>
+<p class="text-sm text-on-secondary-fixed-variant">Pick any 5 fruits for $29.99</p>
+<button class="mt-4 text-secondary-dim font-bold underline">Start Customizing</button>
+</div>
+<img class="h-32 transform group-hover:scale-110 transition-transform" data-alt="Collection of colorful fruit slices like kiwi, orange, and pineapple arranged artistically" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCMGoxDry25k-MIwTSJE9MrUTgXUu9zv8GvkSh9RiZoc81o2HkBUQw2sG0xA0rYxusJCD7pWf9L0ntQt4RZrRFUZoFYVV3c3icGDRaXECINxJMO65IssppucSOZfQBzxc-ZyKciy--xGHlcMPG0bWKFuMN8VkO_TvxxynoFBePryhGdtjqDr1GT3bSz1ax_84VjKk0cwo3J26D8iaeEINxjpIT4XRUZiJDpobL035O6R0feOkcUfiXXbIeuj1ijeScYQjWLX8EJyl9U"/>
+</div>
+</div>
+</section>
+<!-- Harvest Banner (Signature Component) -->
+<section class="px-6 md:px-12 py-16">
+<div class="bg-primary-container rounded-lg px-12 py-20 relative overflow-hidden flex flex-col md:flex-row items-center justify-between">
+<div class="max-w-2xl z-10 text-center md:text-left">
+<h2 class="text-4xl md:text-5xl font-black text-on-primary-container tracking-tighter mb-6">Sustainable Orchard to Table</h2>
+<p class="text-lg text-on-primary-container/80 mb-8 font-medium">We partner with local farmers who respect the land. Zero-waste packaging. Carbon-neutral delivery. Freshness you can feel good about.</p>
+<div class="flex flex-wrap gap-4 justify-center md:justify-start">
+<button class="bg-primary text-on-primary px-8 py-4 rounded-full font-bold shadow-lg">Our Story</button>
+<button class="bg-white/20 backdrop-blur-md text-on-primary-container px-8 py-4 rounded-full font-bold">Meet the Growers</button>
+</div>
+</div>
+<div class="absolute right-0 top-0 bottom-0 opacity-20 md:opacity-100 mix-blend-multiply">
+<img class="h-full object-cover" data-alt="Close-up texture of lush green leaves in an orchard with soft sunlight filtering through" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxCXViYvJYIlO10nhpWpMGq3ciKYDZOvAL2H1SoGlSZSPhlual8Qn8SnCyxyMRaT-3G5QkRc3yn4CFWZlKfm4vzpxtsSr0BW2Ly3S4kGLRaHTnng4u6Z2_PDZTkxL0u6lcerrppb-3mByjQeoWi1ejqoLQagZJxt3GARI6HswwpSlavQm0LJpd-KTwSG0c74_NUMYnv3l6OqGOWAFBz9MwqId0MJiEsTG6lKHPbhsJ29YV1jq5AYc3BxEFoYaMbqPzkIsnFC0UU1Ak"/>
+</div>
+</div>
+</section>
+</main>
+<!-- SideNavBar (Bliss-Core AI) -->
+<!-- Footer -->
+<footer class="bg-stone-50 dark:bg-stone-950 w-full mt-auto grid grid-cols-1 md:grid-cols-4 gap-8 px-12 py-16 w-full">
+<div class="col-span-1 md:col-span-1">
+<div class="text-xl font-black text-green-900 dark:text-green-100 mb-4">BlissFruitz</div>
+<p class="text-stone-500 text-xs leading-relaxed max-w-xs">Pioneering the future of fresh logistics. We connect small-scale organic orchards with global palates through data-driven harvest cycles.</p>
+</div>
+<div>
+<h4 class="be-vietnam-pro text-xs uppercase tracking-widest text-green-900 dark:text-green-100 font-bold mb-4">Shop</h4>
+<ul class="space-y-2 text-stone-500 text-xs font-medium">
+<li><a class="hover:text-orange-600 transition-colors" href="#">Seasonal Boxes</a></li>
+<li><a class="hover:text-orange-600 transition-colors" href="#">Exotic Rare Fruit</a></li>
+<li><a class="hover:text-orange-600 transition-colors" href="#">Citrus Grove</a></li>
+<li><a class="hover:text-orange-600 transition-colors" href="#">Berry Patch</a></li>
+</ul>
+</div>
+<div>
+<h4 class="be-vietnam-pro text-xs uppercase tracking-widest text-green-900 dark:text-green-100 font-bold mb-4">Company</h4>
+<ul class="space-y-2 text-stone-500 text-xs font-medium">
+<li><a class="text-stone-500 dark:text-stone-500 hover:text-orange-600 transition-colors" href="#">Privacy Policy</a></li>
+<li><a class="text-stone-500 dark:text-stone-500 hover:text-orange-600 transition-colors" href="#">Terms of Service</a></li>
+<li><a class="text-stone-500 dark:text-stone-500 hover:text-orange-600 transition-colors" href="#">Shipping Info</a></li>
+<li><a class="text-stone-500 dark:text-stone-500 hover:text-orange-600 transition-colors" href="#">Sustainability</a></li>
+</ul>
+</div>
+<div class="flex flex-col gap-4">
+<h4 class="be-vietnam-pro text-xs uppercase tracking-widest text-green-900 dark:text-green-100 font-bold">Newsletter</h4>
+<div class="flex bg-white dark:bg-stone-900 rounded-lg p-1">
+<input class="bg-transparent border-none focus:ring-0 text-xs flex-1 px-3" placeholder="Email address" type="email"/>
+<button class="bg-green-900 text-white p-2 rounded-md">
+<span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+<p class="text-[10px] text-stone-400">© 2024 BlissFruitz. Freshness Delivered.</p>
+</div>
+</footer>
+<!-- Mobile Navigation Suppressed as per Task Intent for Main Desktop Web view, but if needed: -->
+<!-- <nav class="md:hidden fixed bottom-0 w-full ..."> </nav> -->
+</body></html>

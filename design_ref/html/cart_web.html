@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>BlissFruitz | Secure Checkout</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@100;300;400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-primary-container": "#005c15",
+                    "on-secondary-fixed-variant": "#774400",
+                    "inverse-surface": "#0b0f0e",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary": "#fff0e5",
+                    "surface-bright": "#f5f7f5",
+                    "surface-tint": "#176a21",
+                    "primary": "#176a21",
+                    "primary-container": "#9df197",
+                    "tertiary-fixed-dim": "#ff7c6c",
+                    "surface-container-high": "#e0e3e1",
+                    "surface-container-low": "#eff1ef",
+                    "secondary-container": "#ffc791",
+                    "on-primary": "#d1ffc8",
+                    "on-tertiary-container": "#690002",
+                    "on-primary-fixed": "#00460e",
+                    "surface-container": "#e6e9e7",
+                    "surface-container-highest": "#d9dedb",
+                    "secondary-fixed": "#ffc791",
+                    "primary-fixed": "#9df197",
+                    "error-container": "#f95630",
+                    "on-error-container": "#520c00",
+                    "background": "#f5f7f5",
+                    "on-background": "#2c2f2e",
+                    "primary-fixed-dim": "#90e28a",
+                    "tertiary-container": "#ff9385",
+                    "surface-dim": "#d1d5d3",
+                    "surface-variant": "#d9dedb",
+                    "tertiary-dim": "#a40007",
+                    "secondary-fixed-dim": "#ffb467",
+                    "inverse-primary": "#9df197",
+                    "tertiary-fixed": "#ff9385",
+                    "on-primary-fixed-variant": "#12661e",
+                    "error-dim": "#b92902",
+                    "surface": "#f5f7f5",
+                    "on-surface": "#2c2f2e",
+                    "secondary": "#874e00",
+                    "tertiary": "#b71211",
+                    "inverse-on-surface": "#9b9d9c",
+                    "error": "#b02500",
+                    "outline-variant": "#abaeac",
+                    "on-tertiary": "#ffefed",
+                    "on-tertiary-fixed": "#3a0001",
+                    "secondary-dim": "#764400",
+                    "on-error": "#ffefec",
+                    "primary-dim": "#025d16",
+                    "outline": "#747776",
+                    "on-secondary-fixed": "#4f2c00",
+                    "on-surface-variant": "#595c5b",
+                    "on-tertiary-fixed-variant": "#7a0003",
+                    "on-secondary-container": "#6a3c00"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Be Vietnam Pro"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Be Vietnam Pro', sans-serif; }
+        h1, h2, h3, h4 { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-background text-on-background selection:bg-primary-container">
+<!-- TopNavBar (Shared Component) -->
+<nav class="fixed top-0 w-full z-50 bg-white/80 dark:bg-stone-900/80 backdrop-blur-md shadow-[0_20px_40px_rgba(44,47,46,0.06)] flex justify-between items-center px-8 py-4 max-w-full">
+<div class="text-2xl font-black tracking-tighter text-green-800 dark:text-green-400">BlissFruitz</div><div class="hidden md:flex items-center flex-1 max-w-md mx-8 relative group">
+<span class="material-symbols-outlined absolute left-3 text-stone-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-stone-100/50 border-none rounded-full py-2 pl-10 pr-4 text-sm focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all outline-none text-on-surface" placeholder="Search for fresh fruits..." type="text"/>
+</div>
+<div class="hidden md:flex items-center space-x-8 plus-jakarta-sans text-sm font-medium tracking-tight">
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Home</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Shop</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Categories</a>
+<a class="text-stone-600 dark:text-stone-400 hover:text-green-700 dark:hover:text-green-300 transition-all duration-300" href="#">Offers</a>
+</div>
+<div class="flex items-center space-x-6">
+<button class="material-symbols-outlined text-green-800 scale-95 active:scale-90 transition-transform">shopping_basket</button>
+<button class="material-symbols-outlined text-green-800 scale-95 active:scale-90 transition-transform">account_circle</button>
+</div>
+</nav>
+<main class="pt-24 pb-20 px-4 md:px-12 max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Checkout Form Content -->
+<div class="lg:col-span-8 space-y-10">
+<header>
+<h1 class="text-4xl md:text-5xl font-black tracking-tight text-primary mb-2">Checkout</h1>
+<p class="text-on-surface-variant font-medium">Step 2 of 3: Delivery &amp; Payment</p>
+</header>
+<!-- Step Indicators -->
+<div class="flex items-center space-x-4 mb-8">
+<div class="flex items-center space-x-2">
+<span class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold">1</span>
+<span class="text-sm font-bold text-primary">Cart</span>
+</div>
+<div class="h-[2px] w-12 bg-primary"></div>
+<div class="flex items-center space-x-2">
+<span class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center text-xs font-bold">2</span>
+<span class="text-sm font-bold text-primary">Details</span>
+</div>
+<div class="h-[2px] w-12 bg-surface-container-highest"></div>
+<div class="flex items-center space-x-2">
+<span class="w-8 h-8 rounded-full bg-surface-container-highest text-on-surface-variant flex items-center justify-center text-xs font-bold">3</span>
+<span class="text-sm font-medium text-on-surface-variant">Confirm</span>
+</div>
+</div>
+<!-- Address Section -->
+<section class="bg-surface-container-low p-8 rounded-lg">
+<div class="flex items-center justify-between mb-6">
+<h2 class="text-xl font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary">location_on</span>
+                        Shipping Address
+                    </h2>
+<button class="text-primary text-sm font-bold hover:underline">Add New</button>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<label class="relative flex flex-col p-5 bg-surface-container-lowest border-2 border-primary rounded-lg cursor-pointer group">
+<input checked="" class="absolute top-4 right-4 text-primary focus:ring-primary" name="address" type="radio"/>
+<span class="font-bold text-on-surface">Home</span>
+<span class="text-sm text-on-surface-variant leading-relaxed mt-2">
+                            45 Orchard Avenue, Green Meadows,<br/>
+                            Victoria Park, Bangalore - 560001
+                        </span>
+</label>
+<label class="relative flex flex-col p-5 bg-surface-container-lowest border-2 border-transparent hover:border-outline-variant transition-all rounded-lg cursor-pointer group">
+<input class="absolute top-4 right-4 text-primary focus:ring-primary" name="address" type="radio"/>
+<span class="font-bold text-on-surface">Office</span>
+<span class="text-sm text-on-surface-variant leading-relaxed mt-2">
+                            12 Tech Hub, Block B, 4th Floor,<br/>
+                            Whitefield, Bangalore - 560066
+                        </span>
+</label>
+</div>
+</section>
+<!-- Payment Method Section -->
+<section class="bg-surface-container-low p-8 rounded-lg">
+<h2 class="text-xl font-bold flex items-center gap-2 mb-6">
+<span class="material-symbols-outlined text-secondary">payments</span>
+                    Payment Method
+                </h2>
+<div class="space-y-3">
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-lg border-2 border-transparent hover:border-primary/20 transition-all cursor-pointer group has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input checked="" class="w-5 h-5 text-primary border-outline focus:ring-primary" name="payment" type="radio"/>
+<div class="ml-4 flex-1 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-bold">Razorpay (Secure)</span>
+<span class="text-xs text-on-surface-variant">Cards, Netbanking, Wallets</span>
+</div>
+<div class="flex gap-2">
+<span class="material-symbols-outlined text-stone-400">credit_card</span>
+<span class="material-symbols-outlined text-stone-400">account_balance</span>
+</div>
+</div>
+</label>
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-lg border-2 border-transparent hover:border-primary/20 transition-all cursor-pointer group has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary" name="payment" type="radio"/>
+<div class="ml-4 flex-1 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-bold">UPI Payment</span>
+<span class="text-xs text-on-surface-variant">Google Pay, PhonePe, Paytm</span>
+</div>
+<span class="material-symbols-outlined text-stone-400">qr_code_2</span>
+</div>
+</label>
+<label class="flex items-center p-4 bg-surface-container-lowest rounded-lg border-2 border-transparent hover:border-primary/20 transition-all cursor-pointer group has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+<input class="w-5 h-5 text-primary border-outline focus:ring-primary" name="payment" type="radio"/>
+<div class="ml-4 flex-1 flex items-center justify-between">
+<div class="flex flex-col">
+<span class="font-bold">Cash on Delivery</span>
+<span class="text-xs text-on-surface-variant">Pay when you receive the fruit</span>
+</div>
+<span class="material-symbols-outlined text-stone-400">handshake</span>
+</div>
+</label>
+</div>
+</section>
+</div>
+<!-- Order Summary Sidebar -->
+<aside class="lg:col-span-4 lg:sticky lg:top-28 h-fit space-y-6">
+<div class="bg-white rounded-lg shadow-[0_20px_40px_rgba(44,47,46,0.06)] p-6 overflow-hidden">
+<h3 class="text-lg font-bold mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined">shopping_cart</span>
+                    Cart Summary
+                </h3>
+<!-- Cart Items -->
+<div class="space-y-4 mb-8">
+<div class="flex gap-4">
+<img class="w-16 h-16 object-cover rounded-lg" data-alt="vibrant ripe pineapple with green leaves on a clean white studio background with soft shadows" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA965V42jRkaW0rX5KOyFqdWHWSkGh6eSGbOi1gGCdh5qEiEJKp3KC8niC74fA23y7JHmZ2rVToMt_j_RLbQNyXsg7rU_U6iNORfsjJaKezphhCcOqiQgHvbti-8pJBAUwpyl6NetQxorlihxEHWhaZbwZaT0WudeUaw_6Rrk_nG1920_doo6qDh0dhl4Sxby9ZUrVmx2jxkMLkUCRLvYSnpWYelOJmdws5VNcTl1GcsXrmM61o9TfnSs-wdM2yBSKhlOg0ncJm-T2s"/>
+<div class="flex-1">
+<p class="font-bold text-sm">Organic Queen Pineapple</p>
+<p class="text-xs text-on-surface-variant">1 unit • 1.2kg</p>
+<p class="text-sm font-bold text-secondary mt-1">₹149.00</p>
+</div>
+</div>
+<div class="flex gap-4">
+<img class="w-16 h-16 object-cover rounded-lg" data-alt="bunch of fresh yellow bananas on a light background editorial food photography" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC2fj9wvPXg-aerfzgKd9LWq9ntNWYB9YEhLKzSrDBA6vsRuqm5g09jUpmRwCMSFHY76i-sooUYTbejsgILdcudTKhUdFjYEw5HXOMoF1rhUFnqYOv2lu0rI_F68mYjgdC5miM-5bpjKuSeEfUmrk84QwEo9WXV7ErC7jp6SFw3AqGRzjUOjC0r6X8BHQiDMlK7JgJIle1iKizgQsRSN-CzdDtFvANxmCqlqGQA3XlZyq4USMuzxE39BL0F-q2f_tyvYnN0pSsZuoA"/>
+<div class="flex-1">
+<p class="font-bold text-sm">Hill Banana (Yelakki)</p>
+<p class="text-xs text-on-surface-variant">12 units • 1kg</p>
+<p class="text-sm font-bold text-secondary mt-1">₹85.00</p>
+</div>
+</div>
+<div class="flex gap-4">
+<img class="w-16 h-16 object-cover rounded-lg" data-alt="a pair of perfectly ripe hass avocados sliced in half showing the pit and creamy texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6aSmsRRmnCRhsHhbKSVOzYHieqRQRdtqIALwTGHONQxivFy587_67lXvbBpeYLhw-cHSEyU17pHZwRPMTiNt-Yp7xevVwIbbLxuezda50paT6gVOC_eFRmuh8MnHcrgg_s9X1CU4vb-q5BDTkbYAByCG377dHbDoYXDy0HDf4OQf-oM9lL6xjRN6-q-mTgHz4Qjw0HJOMc0dbyws_QiGtiDF9mPgytv98Dfma47nP97ZrtyyAp3q-xdv9xgA4BLN7j_Z-Jq72-5qR"/>
+<div class="flex-1">
+<p class="font-bold text-sm">Hass Avocado</p>
+<p class="text-xs text-on-surface-variant">2 units • Imported</p>
+<p class="text-sm font-bold text-secondary mt-1">₹299.00</p>
+</div>
+</div>
+</div>
+<!-- Coupon Entry -->
+<div class="mb-8">
+<p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-2">Apply Promo Code</p>
+<div class="flex gap-2">
+<input class="flex-1 bg-surface-container-low border-none rounded-lg px-4 text-sm focus:ring-2 focus:ring-primary/20" placeholder="FRUITFRESH20" type="text"/>
+<button class="bg-secondary text-on-secondary px-4 py-2 rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">APPLY</button>
+</div>
+</div>
+<!-- Price Breakdown -->
+<div class="space-y-3 border-t border-surface-container pt-6 text-sm">
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Subtotal</span>
+<span class="font-medium">₹533.00</span>
+</div>
+<div class="flex justify-between">
+<span class="text-on-surface-variant">Shipping Fee</span>
+<span class="text-primary font-bold">FREE</span>
+</div>
+<div class="flex justify-between text-tertiary">
+<span>Discount (Promo)</span>
+<span>-₹40.00</span>
+</div>
+<div class="flex justify-between pt-4 border-t border-surface-container text-lg font-black">
+<span>Total</span>
+<span class="text-primary">₹493.00</span>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary font-bold py-4 rounded-full mt-8 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2">
+                    Confirm Order
+                    <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<p class="text-[10px] text-center text-on-surface-variant mt-4 uppercase tracking-tighter">Secure 256-bit SSL Encrypted Payment</p>
+</div>
+<!-- SideNavBar (Shared Component Inspired) -->
+</aside>
+</main>
+<!-- Footer (Shared Component) -->
+<footer class="bg-stone-50 dark:bg-stone-950 w-full mt-auto">
+<div class="grid grid-cols-1 md:grid-cols-4 gap-8 px-12 py-16 w-full">
+<div class="space-y-4">
+<div class="text-xl font-black text-green-900 dark:text-green-100">BlissFruitz</div>
+<p class="text-xs text-stone-500 uppercase tracking-widest leading-loose">© 2024 BlissFruitz. Freshness Delivered.</p>
+</div>
+<div class="flex flex-col space-y-3">
+<h5 class="text-xs font-bold text-green-900 uppercase tracking-widest mb-2">Company</h5>
+<a class="be-vietnam-pro text-xs uppercase tracking-widest text-stone-500 hover:text-orange-600 transition-colors" href="#">Privacy Policy</a>
+<a class="be-vietnam-pro text-xs uppercase tracking-widest text-stone-500 hover:text-orange-600 transition-colors" href="#">Terms of Service</a>
+</div>
+<div class="flex flex-col space-y-3">
+<h5 class="text-xs font-bold text-green-900 uppercase tracking-widest mb-2">Service</h5>
+<a class="be-vietnam-pro text-xs uppercase tracking-widest text-stone-500 hover:text-orange-600 transition-colors" href="#">Shipping Info</a>
+<a class="be-vietnam-pro text-xs uppercase tracking-widest text-stone-500 hover:text-orange-600 transition-colors" href="#">Sustainability</a>
+</div>
+<div class="space-y-4">
+<h5 class="text-xs font-bold text-green-900 uppercase tracking-widest mb-2">Follow Us</h5>
+<div class="flex gap-4">
+<div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">public</span>
+</div>
+<div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center cursor-pointer hover:bg-primary/20 transition-colors">
+<span class="material-symbols-outlined text-sm">thumb_up</span>
+</div>
+</div>
+</div>
+</div>
+</footer>
+</body></html>

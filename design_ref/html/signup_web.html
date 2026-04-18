@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Be+Vietnam+Pro:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed": "#3a0001",
+                    "on-secondary": "#fff0e5",
+                    "secondary-fixed": "#ffc791",
+                    "outline": "#747776",
+                    "surface-bright": "#f5f7f5",
+                    "primary-dim": "#025d16",
+                    "inverse-surface": "#0b0f0e",
+                    "tertiary-dim": "#a40007",
+                    "on-primary-container": "#005c15",
+                    "secondary-container": "#ffc791",
+                    "on-secondary-fixed-variant": "#774400",
+                    "on-primary-fixed": "#00460e",
+                    "inverse-on-surface": "#9b9d9c",
+                    "tertiary": "#b71211",
+                    "on-error": "#ffefec",
+                    "surface-container": "#e6e9e7",
+                    "surface-container-low": "#eff1ef",
+                    "on-surface-variant": "#595c5b",
+                    "secondary-dim": "#764400",
+                    "on-tertiary": "#ffefed",
+                    "error-dim": "#b92902",
+                    "surface-container-lowest": "#ffffff",
+                    "on-surface": "#2c2f2e",
+                    "on-tertiary-container": "#690002",
+                    "on-primary-fixed-variant": "#12661e",
+                    "secondary-fixed-dim": "#ffb467",
+                    "primary-fixed": "#9df197",
+                    "primary-fixed-dim": "#90e28a",
+                    "on-background": "#2c2f2e",
+                    "on-secondary-container": "#6a3c00",
+                    "error": "#b02500",
+                    "on-tertiary-fixed-variant": "#7a0003",
+                    "error-container": "#f95630",
+                    "surface-container-high": "#e0e3e1",
+                    "surface-dim": "#d1d5d3",
+                    "on-error-container": "#520c00",
+                    "primary-container": "#9df197",
+                    "outline-variant": "#abaeac",
+                    "background": "#f5f7f5",
+                    "surface-tint": "#176a21",
+                    "tertiary-fixed": "#ff9385",
+                    "surface": "#f5f7f5",
+                    "on-primary": "#d1ffc8",
+                    "secondary": "#874e00",
+                    "on-secondary-fixed": "#4f2c00",
+                    "primary": "#176a21",
+                    "inverse-primary": "#9df197",
+                    "surface-container-highest": "#d9dedb",
+                    "surface-variant": "#d9dedb",
+                    "tertiary-container": "#ff9385",
+                    "tertiary-fixed-dim": "#ff7c6c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "1rem",
+                    "lg": "2rem",
+                    "xl": "3rem",
+                    "full": "9999px"
+            },
+            "fontFamily": {
+                    "headline": ["Plus Jakarta Sans"],
+                    "body": ["Be Vietnam Pro"],
+                    "label": ["Plus Jakarta Sans"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(20px);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        input:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px #176a21;
+        }
+    </style>
+</head>
+<body class="bg-background font-body text-on-surface selection:bg-primary-container selection:text-on-primary-container">
+<main class="min-h-screen flex flex-col md:flex-row overflow-hidden">
+<!-- Branding Shell (Mobile Header) -->
+<div class="md:hidden flex items-center px-8 py-6 bg-white/80 backdrop-blur-md z-50">
+<span class="text-2xl font-bold tracking-tighter text-primary font-headline">Orchard Harvest</span>
+</div>
+<!-- Left Column: Split-Screen Image -->
+<div class="relative hidden md:flex md:w-1/2 lg:w-3/5 bg-primary-container overflow-hidden">
+<img alt="Harvest Display" class="absolute inset-0 w-full h-full object-cover" data-alt="Lush cinematic photography of a sun-drenched wooden table overflowing with ripe peaches, grapes, and green apples in a rustic orchard setting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6qnIyLHy5Jnvrg637gd3PZXFheuQoGHmXDQkR4DQWmlF4IyOmGRj6lU6aMPTsxYo2PIEWTcO9UC5OtDP00bqBXcue9nQ3lh9Ms3UGCxqGdWvencDcjBjwvh5D6CGRQ_h5kYhTQr5kW7oCyGmxkSuLbRVAjhSDP0B8pQpPFKnuBp1E0NXKUP5vCpaQJp9xnQCNITNLUq89C_-mWK8mYP8QVSG_wd-MQqFOhmAzhFsSPZXd5LEcU_AIu_6x0QtD69BJGvJZwHFp16MH"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent"></div>
+<!-- Branding Overlay -->
+<div class="absolute top-12 left-12">
+<span class="text-3xl font-bold tracking-tighter text-white font-headline drop-shadow-sm">Orchard Harvest</span>
+</div>
+<!-- Content Card Overlapping -->
+<div class="absolute bottom-16 left-12 right-12 glass-panel p-10 rounded-lg shadow-xl max-w-xl">
+<h1 class="font-headline text-4xl font-extrabold tracking-tight text-primary mb-4">Nature's finest, delivered fresh.</h1>
+<p class="text-on-surface-variant text-lg leading-relaxed max-w-md">Join our community of harvest enthusiasts and get access to seasonal picks from local sustainable orchards.</p>
+<div class="mt-8 flex items-center gap-4">
+<div class="flex -space-x-4">
+<img alt="user" class="w-10 h-10 rounded-full border-2 border-white" data-alt="portrait of a smiling woman in a garden" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAEP-vgU9fhhLP0ixJEAdn2j-YIWBQEnaXZH8vK1Uqk-5jOBZcrYEOOa52tX4ZC9HArZoJm7kBSFtDqejl_Bxjd7DUZfrisQD-BVsgFsOkyIDo-CSR_9b6-tNlOeZZ5mzRFTra9ih5ngXxnZdgRLyBk2ew7-rFOalcrP-e6JhQg6gbDBXHOM_Wh2Asly7JHHC26ZVNTFVOCOccQ9JGa7G1ZKnSjiDNbCTBRywBZiN2O3mo2x-t8xt6ESQiLGK8575nVI4doJh-oXa6R"/>
+<img alt="user" class="w-10 h-10 rounded-full border-2 border-white" data-alt="portrait of a man smiling naturally outdoors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLBI_O0nIez78kPJ96p9R1l9JGVzLa40FMR-i9Iw1hX9UZuWv4qHAsFp9CesQevVPhOxYfhgI5_5SFXKyfjxPAxs6y0nA8qui1Qd9729YSCOeQCJ2IPt6xHg0GgVx7u7yvx-z3c73knbl57DuirvCHGCVk7fp-_1OIwWvpdD-B8-bPepJ9VLbitgEW8d4fg2qWHL4ywKBD65ZJ1HqNHIlEYVzqeLhPQf0g6v1Gkb1k4OLsWBw8R7clQhV0w4eE8OUO985x3d83INcc"/>
+<img alt="user" class="w-10 h-10 rounded-full border-2 border-white" data-alt="portrait of a young woman laughing in sunlight" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA_ktI2B4b-6yEY1xS5kUjljZWxbZMcCFfCEr7j7uFW5ESkMKqnAPzRIKwyh7lsZgrRxW_XhvfdUXx0DDRQbA0sQtMOCRS_XHxFHpjp3F6wFRZ-ytt2y_5lF4SPz5cyFFz1SYavj9_PFT8LX0OW1yOKyHfhtYn4A2DqlfLtPA3K0Yk1YVLFj_-km_hp0x5LJ1EntI5Itt9GpJXjfJqXGdJVr3vBDbYUkKxE33hJbFR3xVMxFRVIGbgYpxcg--pEWUDFl_hIqvgX0xnS"/>
+</div>
+<span class="text-sm font-medium text-on-surface-variant">Trusted by 2,000+ local families</span>
+</div>
+</div>
+</div>
+<!-- Right Column: Sign Up Form -->
+<div class="flex-1 flex items-center justify-center p-8 md:p-12 lg:p-20 bg-surface-container-lowest">
+<div class="w-full max-w-md">
+<header class="mb-10">
+<h2 class="font-headline text-3xl font-extrabold text-on-surface tracking-tight mb-2">Create Account</h2>
+<p class="text-on-surface-variant">Start your journey into BlissFruitz today.</p>
+</header>
+<form class="space-y-6">
+<!-- Full Name -->
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold font-label text-on-surface-variant" for="name">Full Name</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">person</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-md text-on-surface placeholder:text-outline-variant transition-all" id="name" placeholder="John Doe" type="text"/>
+</div>
+</div>
+<!-- Email -->
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold font-label text-on-surface-variant" for="email">Email Address</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">mail</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-md text-on-surface placeholder:text-outline-variant transition-all" id="email" placeholder="you@example.com" type="email"/>
+</div>
+</div>
+<!-- Password Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold font-label text-on-surface-variant" for="password">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">lock</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-md text-on-surface placeholder:text-outline-variant transition-all" id="password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="space-y-1.5">
+<label class="block text-sm font-semibold font-label text-on-surface-variant" for="confirm-password">Confirm</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant text-xl">lock_reset</span>
+<input class="w-full pl-12 pr-4 py-4 bg-surface-container-low border-none rounded-md text-on-surface placeholder:text-outline-variant transition-all" id="confirm-password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+</div>
+<!-- Terms & Conditions -->
+<div class="flex items-start gap-3 py-2">
+<div class="flex items-center h-5">
+<input class="w-5 h-5 rounded border-outline-variant text-primary focus:ring-primary-dim transition-colors" id="terms" type="checkbox"/>
+</div>
+<label class="text-sm text-on-surface-variant leading-tight" for="terms">
+                            I agree to the <a class="text-primary font-semibold hover:underline" href="#">Terms of Service</a> and <a class="text-primary font-semibold hover:underline" href="#">Privacy Policy</a>.
+                        </label>
+</div>
+<!-- Submit Button -->
+<button class="w-full py-4 px-6 bg-gradient-to-br from-primary to-primary-dim text-on-primary font-bold rounded-full shadow-lg hover:shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group" type="submit">
+                        Create Account
+                        <span class="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
+</button>
+<!-- Social Signup Divider -->
+<div class="relative py-4">
+<div class="absolute inset-0 flex items-center"><div class="w-full border-t border-surface-container-high"></div></div>
+<div class="relative flex justify-center text-xs uppercase"><span class="bg-surface-container-lowest px-4 text-on-surface-variant font-medium tracking-widest">Or continue with</span></div>
+</div>
+<!-- Social Icons -->
+<div class="grid grid-cols-2 gap-4">
+<button class="flex items-center justify-center space-x-3 h-14 bg-surface-container-low border border-surface-container-high rounded-full hover:bg-surface-container-high transition-colors" type="button">
+<svg class="w-5 h-5" viewbox="0 0 24 24">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 1.2-4.53z" fill="#EA4335"></path>
+</svg>
+<span class="font-headline text-sm font-bold text-on-surface">Google</span>
+</button>
+<button class="flex items-center justify-center space-x-3 h-14 bg-surface-container-low border border-surface-container-high rounded-full hover:bg-surface-container-high transition-colors" type="button">
+<svg class="w-5 h-5 text-on-surface" fill="currentColor" viewbox="0 0 24 24">
+<path d="M17.05 20.28c-.96.95-2.04 1.43-3.23 1.43-1.16 0-2.12-.4-3.16-1.18-1.07.78-2.1 1.18-3.08 1.18-1.16 0-2.22-.48-3.19-1.43-2.58-2.6-3.87-6.08-3.87-10.45 0-2.15.54-3.9 1.63-5.23 1.09-1.34 2.5-2.01 4.23-2.01 1 0 2.02.32 3.07.96 1.05-.64 2-.96 2.84-.96 1.6 0 2.91.56 3.94 1.67 1.2 1.3 1.8 2.99 1.8 5.08-.01 4.38-1.3 7.85-3.88 10.44zm-3.07-16.14c0-1.1.37-2.05 1.11-2.84.75-.79 1.67-1.19 2.76-1.19.06 1.11-.31 2.07-1.1 2.88-.8.81-1.72 1.21-2.77 1.15z"></path>
+</svg>
+<span class="font-headline text-sm font-bold text-on-surface">Apple</span>
+</button>
+</div>
+</form>
+<footer class="mt-12 text-center">
+<p class="text-on-surface-variant">
+                        Already have an account? 
+                        <a class="text-secondary font-bold hover:underline ml-1" href="#">Login</a>
+</p>
+</footer>
+</div>
+</div>
+</main>
+<!-- Decorative Fruit Bleed -->
+</body></html>
