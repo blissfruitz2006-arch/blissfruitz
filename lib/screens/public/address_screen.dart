@@ -26,9 +26,9 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
 
   void _refreshAddresses() {
     final user = ref.read(userProfileProvider).valueOrNull;
-    if (user != null) {
+    if (user != null && user.supabaseId != null) {
       setState(() {
-        _addressesFuture = AddressService.getUserAddresses(user.id);
+        _addressesFuture = AddressService.getUserAddresses(user.supabaseId!);
       });
     }
   }
@@ -96,8 +96,10 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
                       _refreshAddresses();
                     },
                     onSetDefault: () async {
-                      await AddressService.setDefault(address.id!, user.id);
-                      _refreshAddresses();
+                      if (user.supabaseId != null) {
+                        await AddressService.setDefault(address.id!, user.supabaseId!);
+                        _refreshAddresses();
+                      }
                     },
                   );
                 },
@@ -107,11 +109,37 @@ class _AddressScreenState extends ConsumerState<AddressScreen> {
           Positioned(
             bottom: 20,
             right: 20,
-            child: FloatingActionButton.extended(
-              onPressed: () => _showAddressForm(context),
-              backgroundColor: AppTheme.primary,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('Add New Address', style: TextStyle(color: Colors.white)),
+            child: GestureDetector(
+              onTap: () => _showAddressForm(context),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primary,
+                  borderRadius: BorderRadius.circular(30),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primary.withValues(alpha: 0.3),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.add, color: Colors.white, size: 20),
+                    SizedBox(width: 8),
+                    Text(
+                      'Add New Address',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -226,4 +254,5 @@ class _AddressCard extends StatelessWidget {
     );
   }
 }
+
 

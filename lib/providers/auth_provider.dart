@@ -60,7 +60,7 @@ class UserProfileNotifier extends StateNotifier<AsyncValue<UserProfile?>> {
       return profile;
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return null;
+      rethrow;
     }
   }
 

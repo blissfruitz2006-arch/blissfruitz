@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 class Order {
   final int? id;
   final String? orderNumber;
-  final int? userId;
+  final String? userId;
   final String? guestEmail;
   final String? shippingName;
   final String? shippingPhone;
@@ -39,6 +39,7 @@ class Order {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? deliveredAt;
+  final String? riderId;
   final List<OrderItem> items;
 
   const Order({
@@ -78,6 +79,7 @@ class Order {
     this.createdAt,
     this.updatedAt,
     this.deliveredAt,
+    this.riderId,
     this.items = const [],
   });
 
@@ -86,7 +88,7 @@ class Order {
     return Order(
       id: json['id'] as int?,
       orderNumber: json['orderNumber'] as String?,
-      userId: json['userId'] as int?,
+      userId: json['userId'] as String?,
       guestEmail: json['guestEmail'] as String?,
       shippingName: json['shippingName'] as String?,
       shippingPhone: json['shippingPhone'] as String?,
@@ -126,6 +128,7 @@ class Order {
       deliveredAt: json['deliveredAt'] != null
           ? DateTime.tryParse(json['deliveredAt'] as String)
           : null,
+      riderId: json['rider_id'] as String?,
       items: itemsList != null
           ? itemsList.map((e) => OrderItem.fromJson(e)).toList()
           : [],
@@ -163,6 +166,7 @@ class Order {
         if (replacementReason != null) 'replacementReason': replacementReason,
         if (replacementNotes != null) 'replacementNotes': replacementNotes,
         if (adminNotes != null) 'adminNotes': adminNotes,
+        if (riderId != null) 'rider_id': riderId,
       };
 
   Map<String, dynamic> toJson() => {
@@ -202,13 +206,14 @@ class Order {
         'createdAt': createdAt?.toIso8601String(),
         'updatedAt': updatedAt?.toIso8601String(),
         'deliveredAt': deliveredAt?.toIso8601String(),
+        'rider_id': riderId,
         'OrderItem': items.map((e) => e.toJson()).toList(),
       };
 
   Order copyWith({
     int? id,
     String? orderNumber,
-    int? userId,
+    String? userId,
     String? guestEmail,
     String? shippingName,
     String? shippingPhone,
@@ -241,6 +246,8 @@ class Order {
     String? adminNotes,
     DateTime? createdAt,
     DateTime? updatedAt,
+    DateTime? deliveredAt,
+    String? riderId,
     List<OrderItem>? items,
   }) {
     return Order(
@@ -279,6 +286,8 @@ class Order {
       adminNotes: adminNotes ?? this.adminNotes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      deliveredAt: deliveredAt ?? this.deliveredAt,
+      riderId: riderId ?? this.riderId,
       items: items ?? this.items,
     );
   }

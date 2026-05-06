@@ -1,0 +1,28 @@
+# BlissFruitz — AI-Readable Site Information
+
+> BlissFruitz is a premium fresh fruits and dry fruits e-commerce delivery service based in Mumbai, Maharashtra, India.
+
+## About
+BlissFruitz delivers handpicked seasonal fruits, exotic imports, and premium dry fruits directly to customers' doorsteps across Mumbai. We source from certified organic farms and ensure farm-to-fork freshness within 24 hours.
+
+## Products
+- **Fresh Fruits**: Seasonal Indian fruits (Alphonso Mango, Kesar Mango, Pomegranate, etc.), Exotic imports (Dragon Fruit, Avocado, Kiwi, Blueberries)
+- **Dry Fruits**: Premium Cashews, Almonds, Pistachios, Walnuts, Raisins, Dates, Mixed dry fruit gift boxes
+- **Seasonal Specials**: Mango season (April–June), Litchi (May–June), Strawberry (Dec–Feb)
+
+## Delivery
+- **Coverage**: All areas of Mumbai (Andheri, Bandra, Juhu, Powai, Thane, Borivali, Dadar, and more)
+- **Speed**: Same-day delivery available for orders placed before 2 PM
+- **Minimum Order**: No minimum order requirement
+
+## Website
+- Homepage: https://blissfruitz.com/
+- Shop: https://blissfruitz.com/shop
+- Blog: https://blissfruitz.com/blog
+- Contact: https://blissfruitz.com/contact
+
+## Contact
+- Website: https://blissfruitz.com
+- Instagram: https://www.instagram.com/blissfruitz
+- Facebook: https://www.facebook.com/blissfruitz
+- Location: Mumbai, Maharashtra, India

@@ -48,25 +48,25 @@ class Rider {
   factory Rider.fromJson(Map<String, dynamic> json) {
     return Rider(
       id: json['id'] as String,
-      fullName: json['full_name'] as String? ?? 'Unknown Rider',
-      phone: json['phone'] as String?,
-      vehicleType: json['vehicle_type'] as String?,
+      fullName: (json['full_name'] ?? json['fullName']) as String? ?? 'Unknown Rider',
+      phone: (json['phone'] ?? json['phone_number']) as String?,
+      vehicleType: (json['vehicle_type'] ?? json['vehicleType']) as String?,
       zone: json['zone'] as String?,
-      isAvailable: json['is_available'] as bool? ?? false,
-      currentLatitude: (json['current_latitude'] as num?)?.toDouble(),
-      currentLongitude: (json['current_longitude'] as num?)?.toDouble(),
-      lastLocationUpdate: json['last_location_update'] != null
-          ? DateTime.tryParse(json['last_location_update'] as String)
+      isAvailable: (json['is_available'] ?? json['isAvailable']) as bool? ?? false,
+      currentLatitude: ((json['current_latitude'] ?? json['currentLatitude']) as num?)?.toDouble(),
+      currentLongitude: ((json['current_longitude'] ?? json['currentLongitude']) as num?)?.toDouble(),
+      lastLocationUpdate: (json['last_location_update'] ?? json['lastLocationUpdate']) != null
+          ? DateTime.tryParse((json['last_location_update'] ?? json['lastLocationUpdate']) as String)
           : null,
-      totalDeliveries: json['total_deliveries'] as int? ?? 0,
-      totalEarnings: (json['total_earnings'] as num?)?.toDouble() ?? 0.0,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
+      totalDeliveries: (json['total_deliveries'] ?? json['totalDeliveries']) as int? ?? 0,
+      totalEarnings: ((json['total_earnings'] ?? json['totalEarnings']) as num?)?.toDouble() ?? 0.0,
+      createdAt: (json['created_at'] ?? json['createdAt']) != null
+          ? DateTime.tryParse((json['created_at'] ?? json['createdAt']) as String)
           : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String)
+      updatedAt: (json['updated_at'] ?? json['updatedAt']) != null
+          ? DateTime.tryParse((json['updated_at'] ?? json['updatedAt']) as String)
           : null,
-      fcmToken: json['fcm_token'] as String?,
+      fcmToken: (json['fcm_token'] ?? json['fcmToken']) as String?,
     );
   }
 

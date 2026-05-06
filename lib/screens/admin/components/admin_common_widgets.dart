@@ -10,6 +10,8 @@ class AdminGlassCard extends StatelessWidget {
   final Color? fillColor; // Alias for color to match some usages
   final List<BoxShadow>? boxShadow;
   final Border? border;
+  final double? width;
+  final double? height;
 
   const AdminGlassCard({
     super.key,
@@ -21,6 +23,8 @@ class AdminGlassCard extends StatelessWidget {
     this.fillColor,
     this.boxShadow,
     this.border,
+    this.width,
+    this.height,
   });
 
   @override
@@ -29,6 +33,8 @@ class AdminGlassCard extends StatelessWidget {
     final effectiveColor = fillColor ?? color ?? (isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white);
     
     return Container(
+      width: width,
+      height: height,
       margin: margin,
       padding: padding ?? const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -125,15 +131,17 @@ class StatusBadge extends StatelessWidget {
           Icon(icon, size: 16, color: color),
           const SizedBox(width: 8),
           Flexible(
-            child: Text(
-              label.toUpperCase(),
-              style: GoogleFonts.outfit(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                color: color,
-                letterSpacing: 1.0,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label.toUpperCase(),
+                style: GoogleFonts.outfit(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                  letterSpacing: 1.0,
+                ),
               ),
-              overflow: TextOverflow.ellipsis,
             ),
           ),
         ],
@@ -141,3 +149,4 @@ class StatusBadge extends StatelessWidget {
     );
   }
 }
+

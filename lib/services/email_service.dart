@@ -3,20 +3,32 @@ import 'package:flutter/foundation.dart';
 import '../config/supabase_config.dart';
 import '../models/order.dart';
 import '../services/invoice_service.dart';
-import '../services/settings_service.dart';
+import '../models/settings.dart';
 
 class EmailService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   /// Send order confirmation email
   static Future<void> sendOrderConfirmation(Order order) async {
-    final email = order.guestEmail;
+    String? email = order.guestEmail;
+    
+    if (email == null || email.isEmpty) {
+      if (order.userId != null) {
+        try {
+          final userData = await _client.from('User').select('email').eq('id', order.userId!).maybeSingle();
+          email = userData?['email'] as String?;
+        } catch (e) {
+          debugPrint('EmailService: Error fetching user email: $e');
+        }
+      }
+    }
+
     if (email == null || email.isEmpty) {
       debugPrint('EmailService: No email found for order ${order.orderNumber}');
       return;
     }
 
-    final settings = await SettingsService.getGeneralSettings();
+    const settings = GeneralSettings();
     final storeName = settings.siteName ?? 'BlissFruitz';
 
     final subject = 'Order Confirmed - ${order.orderNumber}';
@@ -78,10 +90,18 @@ class EmailService {
 
   /// Send shipping update email
   static Future<void> sendOrderShipped(Order order) async {
-    final email = order.guestEmail;
+    String? email = order.guestEmail;
+    
+    if (email == null || email.isEmpty) {
+      if (order.userId != null) {
+        final userData = await _client.from('User').select('email').eq('id', order.userId!).maybeSingle();
+        email = userData?['email'] as String?;
+      }
+    }
+
     if (email == null || email.isEmpty) return;
 
-    final settings = await SettingsService.getGeneralSettings();
+    const settings = GeneralSettings();
     final storeName = settings.siteName ?? 'BlissFruitz';
 
     final subject = 'Your Order is on the way! - ${order.orderNumber}';
@@ -135,10 +155,18 @@ class EmailService {
 
   /// Send order completed email with PDF invoice attachment
   static Future<void> sendOrderCompletedWithInvoice(Order order) async {
-    final email = order.guestEmail;
+    String? email = order.guestEmail;
+    
+    if (email == null || email.isEmpty) {
+      if (order.userId != null) {
+        final userData = await _client.from('User').select('email').eq('id', order.userId!).maybeSingle();
+        email = userData?['email'] as String?;
+      }
+    }
+
     if (email == null || email.isEmpty) return;
 
-    final settings = await SettingsService.getGeneralSettings();
+    const settings = GeneralSettings();
     final storeName = settings.siteName ?? 'BlissFruitz';
 
     final subject = 'Order Delivered & Invoice - ${order.orderNumber}';

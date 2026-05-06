@@ -1,114 +1,79 @@
+import 'package:flutter/foundation.dart';
 import '../config/supabase_config.dart';
 import '../models/settings.dart';
-import 'logger_service.dart';
 
 class SettingsService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _supabase => SupabaseConfig.client;
 
-  /// Fetch general site settings
-  static Future<GeneralSettings> getGeneralSettings() async {
+  // --- Generic Methods for Dynamic Architecture ---
+
+  /// Fetches settings from a specific table (assumes 1-row table with id=1)
+  static Future<Map<String, dynamic>> getSettings(String tableName) async {
     try {
-      final data = await _client
-          .from('public_settings_general')
+      final response = await _supabase
+          .from(tableName)
           .select()
-          .eq('id', 1)
+          .limit(1)
           .maybeSingle();
 
-      if (data != null) {
-        return GeneralSettings.fromJson(data);
-      }
+      return response ?? {};
     } catch (e) {
-      LoggerService.logError('SettingsService.getGeneralSettings error: $e');
+      debugPrint('SettingsService.getSettings ($tableName) error: $e');
+      return {};
     }
-    return const GeneralSettings();
   }
 
-  /// Fetch payment settings
-  static Future<PaymentSettings> getPaymentSettings() async {
+  /// Updates settings in a specific table
+  static Future<void> updateSettings(
+    String tableName,
+    Map<String, dynamic> data,
+  ) async {
     try {
-      final data = await _client
-          .from('public_settings_payment')
-          .select()
-          .eq('id', 1)
-          .maybeSingle();
-
-      if (data != null) {
-        return PaymentSettings.fromJson(data);
-      } else {
-        LoggerService.logEvent(
-          event: 'settings_missing',
-          message: 'Payment settings not found for ID 1',
-          level: LogLevel.warning,
-        );
-      }
+      // Remove any fields that shouldn't be updated (like id, created_at, updated_at)
+      final payload = Map<String, dynamic>.from(data);
+      payload['id'] = 1;
+      payload['updated_at'] = DateTime.now().toIso8601String();
+      await _supabase.from(tableName).upsert(payload);
     } catch (e) {
-      LoggerService.logError('SettingsService.getPaymentSettings error: $e');
+      debugPrint('SettingsService.updateSettings ($tableName) error: $e');
+      rethrow;
     }
-    return const PaymentSettings();
   }
 
-  /// Fetch shipping settings
-  static Future<ShippingSettings> getShippingSettings() async {
-    try {
-      final data = await _client
-          .from('public_settings_shipping')
-          .select()
-          .eq('id', 1)
-          .maybeSingle();
-
-      if (data != null) {
-        return ShippingSettings.fromJson(data);
-      }
-    } catch (e) {
-      LoggerService.logError('SettingsService.getShippingSettings error: $e');
-    }
-    return const ShippingSettings();
-  }
-
-  /// Fetch maintenance mode settings
-  static Future<MaintenanceSettings> getMaintenanceSettings() async {
-    try {
-      final data = await _client
-          .from('public_settings_maintenance')
-          .select()
-          .eq('id', 1)
-          .maybeSingle();
-
-      if (data != null) {
-        return MaintenanceSettings.fromJson(data);
-      }
-    } catch (e) {
-      LoggerService.logError('SettingsService.getMaintenanceSettings error: $e');
-    }
-    return const MaintenanceSettings();
-  }
-
-  /// Get a stream of maintenance mode settings
-  static Stream<MaintenanceSettings> getMaintenanceSettingsStream() {
-    return _client
-        .from('public_settings_maintenance')
+  /// Returns a stream for real-time updates (useful for maintenance mode)
+  static Stream<Map<String, dynamic>> watchSettings(String tableName) {
+    return _supabase
+        .from(tableName)
         .stream(primaryKey: ['id'])
         .eq('id', 1)
-        .map((data) => data.isNotEmpty 
-            ? MaintenanceSettings.fromJson(data.first) 
-            : const MaintenanceSettings());
+        .map((list) => list.isNotEmpty ? list.first : {});
   }
 
-  /// Fetch app update settings
-  static Future<AppUpdateSettings> getAppUpdateSettings() async {
-    try {
-      final data = await _client
-          .from('settings_app_update')
-          .select()
-          .eq('id', 1)
-          .maybeSingle();
+  // --- Specific Typed Methods ---
 
-      if (data != null) {
-        return AppUpdateSettings.fromJson(data);
-      }
-    } catch (e) {
-      LoggerService.logError('SettingsService.getAppUpdateSettings error: $e');
-    }
-    return const AppUpdateSettings(latestVersion: '1.0.0');
+  static Future<GeneralSettings> getGeneralSettings() async {
+    final data = await getSettings('settings_general');
+    return GeneralSettings.fromJson(data);
+  }
+
+  static Future<PaymentSettings> getPaymentSettings() async {
+    final data = await getSettings('settings_payment');
+    return PaymentSettings.fromJson(data);
+  }
+
+  static Future<ShippingSettings> getShippingSettings() async {
+    final data = await getSettings('settings_shipping');
+    return ShippingSettings.fromJson(data);
+  }
+
+  static Stream<MaintenanceSettings> watchMaintenanceSettings() {
+    return watchSettings(
+      'settings_maintenance',
+    ).map((data) => MaintenanceSettings.fromJson(data));
+  }
+
+  static Future<AppUpdateSettings> getAppUpdateSettings() async {
+    final data = await getSettings('settings_app_update');
+    return AppUpdateSettings.fromJson(data);
   }
 }

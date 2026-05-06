@@ -95,6 +95,14 @@ class Product {
   bool get inStock => stockQuantity > 0;
 
   String? get descriptionShort => shortDescription;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Product && runtimeType == other.runtimeType && id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
 }
 
 

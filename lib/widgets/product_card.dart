@@ -10,11 +10,13 @@ import 'app_image.dart';
 class ProductCard extends ConsumerStatefulWidget {
   final Product product;
   final VoidCallback? onTap;
+  final String? heroTagPrefix;
 
   const ProductCard({
     super.key, 
     required this.product, 
     this.onTap,
+    this.heroTagPrefix,
   });
 
   @override
@@ -67,8 +69,7 @@ class _ProductCardState extends ConsumerState<ProductCard>
       opacity: _fadeAnimation,
       child: SlideTransition(
         position: _slideAnimation,
-        child: RepaintBoundary(
-          child: MouseRegion(
+        child: MouseRegion(
             onEnter: (_) => setState(() => _isHovered = true),
             onExit: (_) => setState(() => _isHovered = false),
             child: GestureDetector(
@@ -113,12 +114,13 @@ class _ProductCardState extends ConsumerState<ProductCard>
                         Stack(
                           children: [
                             Hero(
-                              tag: 'product-${product.id}',
+                              tag: '${widget.heroTagPrefix ?? 'product'}-${product.id}',
                               child: AspectRatio(
                                 aspectRatio: 1.1,
                                 child: AppImage(
                                   path: product.imageMain,
                                   fit: BoxFit.cover,
+                                  semanticLabel: '${product.name} — ${product.category?.name ?? 'fresh fruit'} from BlissFruitz Mumbai',
                                 ),
                               ),
                             ),
@@ -209,31 +211,77 @@ class _ProductCardState extends ConsumerState<ProductCard>
                               isSmallCard ? 12 : 20, 
                               isSmallCard ? 12 : 20
                             ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  product.name,
-                                  maxLines: isTinyCard ? 2 : 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.outfit(
-                                    fontSize: isTinyCard ? 14 : (isSmallCard ? 16 : 18),
-                                    fontWeight: FontWeight.w800,
-                                    color: isDark ? Colors.white : const Color(0xFF1F2937),
-                                    letterSpacing: -0.5,
-                                    height: 1.2,
+                            child: SingleChildScrollView(
+                              physics: const NeverScrollableScrollPhysics(),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    product.name,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.outfit(
+                                      fontSize: isTinyCard ? 14 : (isSmallCard ? 16 : 18),
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark ? Colors.white : const Color(0xFF1F2937),
+                                      letterSpacing: -0.5,
+                                      height: 1.1,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  product.unit,
-                                  style: GoogleFonts.beVietnamPro(
-                                    fontSize: isSmallCard ? 11 : 13,
-                                    fontWeight: FontWeight.w500,
-                                    color: isDark ? Colors.white54 : Colors.grey[600],
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    product.unit,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.beVietnamPro(
+                                      fontSize: isSmallCard ? 11 : 13,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? Colors.white54 : Colors.grey[600],
+                                    ),
                                   ),
-                                ),
-                                const Spacer(),
+                                if (!product.inStock)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      'OUT OF STOCK',
+                                      style: GoogleFonts.outfit(
+                                        color: Colors.red,
+                                        fontSize: isSmallCard ? 9 : 10,
+                                        fontWeight: FontWeight.w900,
+                                      ),
+                                    ),
+                                  )
+                                else if (product.stockQuantity < 10)
+                                  Container(
+                                    margin: const EdgeInsets.only(top: 8),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.warning_amber_rounded, size: 12, color: Colors.orange),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'ONLY ${product.stockQuantity} LEFT',
+                                          style: GoogleFonts.outfit(
+                                            color: Colors.orange[800],
+                                            fontSize: isSmallCard ? 9 : 10,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                 const SizedBox(height: 4),
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -285,12 +333,12 @@ class _ProductCardState extends ConsumerState<ProductCard>
                             ),
                           ),
                         ),
+                      ),
                       ],
                     ),
                   );
                 },
               ),
-            ),
           ),
         ),
       ),

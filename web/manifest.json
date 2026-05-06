@@ -1,11 +1,11 @@
 {
-    "name": "blissfruitz",
-    "short_name": "blissfruitz",
+    "name": "BlissFruitz — Fresh Fruits Delivery",
+    "short_name": "BlissFruitz",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#F8FAF8",
+    "theme_color": "#16a34a",
+    "description": "Premium fresh fruits and dry fruits delivered to your doorstep in Mumbai. Order online for fast delivery.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

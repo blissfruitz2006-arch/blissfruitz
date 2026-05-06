@@ -12,23 +12,19 @@ class DeliveryService {
 
   /// Assigns a rider to an order.
   /// 
-  /// Updates the order status to 'out_for_delivery', generates a 4-digit OTP,
-  /// and creates a new record in `delivery_assignments`.
+  /// Assigns a rider to an order.
+  /// 
+  /// Updates the order status to 'out_for_delivery' and creates a new record in `delivery_assignments`.
   Future<DeliveryAssignment> assignRider(int orderId, String riderId) async {
-    print('DEBUG: Assigning rider $riderId to order $orderId using RPC');
+    debugPrint('DEBUG: Assigning rider $riderId to order $orderId using RPC');
     try {
-      // 1. Generate a 4-digit OTP
-      final otp = (1000 + Random().nextInt(9000)).toString();
-      print('DEBUG: Generated OTP: $otp');
-
-      // 2. Call the RPC
+      // 1. Call the RPC
       final response = await _supabase.rpc('assign_rider_to_order', params: {
         'p_order_id': orderId,
         'p_rider_id': riderId,
-        'p_otp_code': otp,
       });
       
-      print('DEBUG: RPC Success: $response');
+      debugPrint('DEBUG: RPC Success: $response');
 
       // 3. Fetch the full assignment details (including joins) because the RPC only returns basic info
       final fullData = await _supabase
@@ -43,7 +39,7 @@ class DeliveryService {
 
       return DeliveryAssignment.fromJson(fullData);
     } on PostgrestException catch (e) {
-      print('DEBUG: PostgrestException in RPC: ${e.message} (code: ${e.code})');
+      debugPrint('DEBUG: PostgrestException in RPC: ${e.message} (code: ${e.code})');
       if (e.code == '23505') {
         if (e.message.contains('idx_one_active_delivery')) {
           throw Exception('This rider already has an active delivery.');
@@ -53,7 +49,7 @@ class DeliveryService {
       }
       throw Exception('Database error: ${e.message}');
     } catch (e) {
-      print('DEBUG: Error in assignRider: $e');
+      debugPrint('DEBUG: Error in assignRider: $e');
       throw Exception('Failed to assign rider: $e');
     }
   }
@@ -75,45 +71,87 @@ class DeliveryService {
       }
 
       await _supabase.from('delivery_assignments').update(updates).eq('id', assignmentId);
+
+
+      // Also update the Order status to keep them in sync
+      if (status == DeliveryStatus.pickedUp || status == DeliveryStatus.onTheWay) {
+        // Find the order_id for this assignment
+        final assignment = await _supabase
+            .from('delivery_assignments')
+            .select('order_id')
+            .eq('id', assignmentId)
+            .maybeSingle();
+        
+        if (assignment != null && assignment['order_id'] != null) {
+          await _supabase.from('Order').update({
+            'orderStatus': 'out_for_delivery',
+            'updatedAt': DateTime.now().toIso8601String(),
+          }).eq('id', assignment['order_id']);
+        }
+      }
     } catch (e) {
       throw Exception('Failed to update delivery status: $e');
     }
   }
 
-  /// Confirms delivery using an OTP.
-  /// 
-  /// If OTP matches, marks the assignment and order as delivered.
-  Future<bool> confirmDeliveryWithOtp(String assignmentId, String enteredOtp) async {
+  /// Uploads a delivery proof image to Supabase Storage.
+  Future<String> uploadDeliveryProof(String assignmentId, Uint8List imageBytes) async {
     try {
-      // 1. Fetch assignment to check OTP
-      final assignmentData = await _supabase
-          .from('delivery_assignments')
-          .select('otp_code, order_id, rider_id')
-          .eq('id', assignmentId)
-          .single();
+      final fileName = '$assignmentId/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      
+      await _supabase.storage.from('delivery-proofs').uploadBinary(
+        fileName,
+        imageBytes,
+        fileOptions: const FileOptions(contentType: 'image/jpeg', cacheControl: '3600'),
+      );
+      
+      return _supabase.storage.from('delivery-proofs').getPublicUrl(fileName);
+    } catch (e) {
+      debugPrint('DEBUG: Error in uploadDeliveryProof: $e');
+      throw Exception('Failed to upload delivery proof: $e');
+    }
+  }
 
-      if (assignmentData['otp_code'] != enteredOtp) {
+  /// Confirms delivery using a photo proof.
+  /// 
+  /// Uses a SECURITY DEFINER RPC to atomically save the proof URL, mark assignment
+  /// as delivered, and update the Order status.
+  /// Legacy confirmDelivery method - updated to use correct POD flow
+  Future<void> confirmDelivery(String assignmentId, String publicUrl) async {
+    try {
+      final ok = await confirmDeliveryWithPhoto(assignmentId, publicUrl);
+      if (!ok) throw Exception('Failed to confirm delivery');
+    } catch (e) {
+      throw Exception('Failed to confirm delivery: $e');
+    }
+  }
+
+  Future<bool> confirmDeliveryWithPhoto(String assignmentId, String imageUrl) async {
+    try {
+      final response = await _supabase.rpc('confirm_delivery', params: {
+        'p_assignment_id': assignmentId,
+        'p_proof_image_url': imageUrl,
+      });
+
+      final result = response as Map<String, dynamic>;
+
+      if (result['success'] != true) {
+        debugPrint('Delivery confirmation failed: ${result['error']}');
         return false;
       }
 
-      final int orderId = assignmentData['order_id'];
-      final String riderId = assignmentData['rider_id'];
-
-      // 2. Mark assignment as delivered
-      await updateDeliveryStatus(assignmentId, DeliveryStatus.delivered);
-
-      // 3. Update order status
-      await _supabase.from('Order').update({
-        'orderStatus': 'delivered',
-        'deliveredAt': DateTime.now().toIso8601String(),
-        'updatedAt': DateTime.now().toIso8601String(),
-      }).eq('id', orderId);
-
-      // 4. Calculate and save earnings
-      await calculateAndSaveEarnings(assignmentId, riderId);
+      // Calculate and save earnings after successful delivery
+      // Fallback to current auth user if RPC doesn't return rider_id
+      final String? riderId = result['rider_id'] ?? _supabase.auth.currentUser?.id;
+      if (riderId != null) {
+        await calculateAndSaveEarnings(assignmentId, riderId);
+      } else {
+        debugPrint('Warning: Could not determine rider_id for earnings calculation');
+      }
 
       return true;
     } catch (e) {
+      debugPrint('Error in confirmDeliveryWithPhoto: $e');
       throw Exception('Failed to confirm delivery: $e');
     }
   }
@@ -123,28 +161,53 @@ class DeliveryService {
   /// Logic: Base ₹40 + ₹5 per km bonus (placeholder distance = 5km).
   Future<void> calculateAndSaveEarnings(String assignmentId, String riderId) async {
     try {
-      const double baseEarnings = 40.0;
-      const double distanceKm = 5.0; // Placeholder distance logic
-      const double bonusPerKm = 5.0;
-      final double bonusEarnings = distanceKm * bonusPerKm;
+      // 1. Fetch delivery settings and order coordinates
+      final settings = await _supabase.from('settings_delivery').select().eq('id', 1).single();
+      final assignment = await _supabase.from('delivery_assignments').select('order_id, Order(latitude, longitude)').eq('id', assignmentId).single();
+      
+      final double baseEarnings = (settings['base_earnings'] as num?)?.toDouble() ?? 40.0;
+      final double bonusPerKm = (settings['bonus_per_km'] as num?)?.toDouble() ?? 5.0;
+      final double minDistance = (settings['min_distance_for_bonus'] as num?)?.toDouble() ?? 0.0;
+      final double storeLat = (settings['store_latitude'] as num?)?.toDouble() ?? 22.5726;
+      final double storeLng = (settings['store_longitude'] as num?)?.toDouble() ?? 88.3639;
+
+      final orderData = assignment['Order'] as Map<String, dynamic>?;
+      final double? orderLat = (orderData?['latitude'] as num?)?.toDouble();
+      final double? orderLng = (orderData?['longitude'] as num?)?.toDouble();
+
+      double distanceKm = 5.0; // Default if coordinates are missing
+      if (orderLat != null && orderLng != null) {
+        distanceKm = _calculateDistance(storeLat, storeLng, orderLat, orderLng);
+      }
+
+      double bonusEarnings = 0.0;
+      if (distanceKm > minDistance) {
+        bonusEarnings = (distanceKm - minDistance) * bonusPerKm;
+      }
+      
       final double totalEarnings = baseEarnings + bonusEarnings;
 
+      // 2. Insert into delivery_earnings
       await _supabase.from('delivery_earnings').insert({
         'assignment_id': assignmentId,
         'rider_id': riderId,
         'base_earnings': baseEarnings,
         'bonus_earnings': bonusEarnings,
         'total_earnings': totalEarnings,
+        'created_at': DateTime.now().toIso8601String(),
       });
 
-      // Also update rider's total earnings and delivery count
+      // 2. Update rider's total earnings and delivery count via RPC
+      // This RPC should handle the increment of both total_deliveries and total_earnings in the riders table
       await _supabase.rpc('increment_rider_stats', params: {
         'r_id': riderId,
         'earnings_increment': totalEarnings,
       });
+      
+      debugPrint('DEBUG: Earnings saved successfully for rider $riderId');
     } catch (e) {
       // Log error but don't block the delivery completion flow
-      debugPrint('Error saving earnings: $e');
+      debugPrint('CRITICAL: Error saving earnings for assignment $assignmentId: $e');
     }
   }
 
@@ -196,15 +259,26 @@ class DeliveryService {
     });
   }
 
+  /// Watches all assignments for a specific rider.
+  Stream<List<DeliveryAssignment>> watchRiderAssignments(String riderId) {
+    return _supabase
+        .from('delivery_assignments')
+        .stream(primaryKey: ['id'])
+        .eq('rider_id', riderId)
+        .order('assigned_at', ascending: false)
+        .map((data) => data.map((json) => DeliveryAssignment.fromJson(json)).toList());
+  }
+
   /// Gets a list of available riders in a specific zone.
   Future<List<Rider>> getAvailableRiders(String zone) async {
     try {
-      final response = await _supabase
-          .from('riders')
-          .select()
-          .eq('zone', zone)
-          .eq('is_available', true);
+      var query = _supabase.from('riders').select().eq('is_available', true);
       
+      if (zone != 'All Zones' && zone.isNotEmpty) {
+        query = query.ilike('zone', '%$zone%');
+      }
+
+      final response = await query;
       return (response as List).map((json) => Rider.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to get available riders: $e');
@@ -233,5 +307,15 @@ class DeliveryService {
     } catch (e) {
       throw Exception('Failed to save rider rating: $e');
     }
+  }
+
+  /// Calculates the Haversine distance between two coordinates in kilometers.
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const p = 0.017453292519943295;
+    const c = cos;
+    final a = 0.5 - c((lat2 - lat1) * p) / 2 +
+        c(lat1 * p) * c(lat2 * p) *
+            (1 - c((lon2 - lon1) * p)) / 2;
+    return 12742 * asin(sqrt(a));
   }
 }

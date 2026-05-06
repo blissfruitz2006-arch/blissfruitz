@@ -1,0 +1,27 @@
+# robots.txt for blissfruitz.com
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin/
+Disallow: /checkout/
+Disallow: /cart/
+Disallow: /account/
+Disallow: /rider/
+Disallow: /order-success
+Disallow: /order-failed
+Disallow: /maintenance
+
+# Allow all major AI crawlers (good for GEO/AI Overviews)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+Sitemap: https://blissfruitz.com/sitemap.xml

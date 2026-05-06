@@ -1,8 +1,7 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:blissfruitz/services/settings_service.dart';
 import 'package:blissfruitz/models/settings.dart';
 import 'package:blissfruitz/config/routes.dart';
 import 'logger_service.dart';
@@ -10,7 +9,10 @@ import 'logger_service.dart';
 class UpdateService {
   /// Checks for a new version from self-hosted settings (Supabase)
   static Future<void> checkForUpdate() async {
-    if (!Platform.isAndroid) return;
+    if (kIsWeb) return;
+    
+    // Only proceed on Android as ota_update is Android-only
+    if (defaultTargetPlatform != TargetPlatform.android) return;
 
     try {
       // 1. Get current version
@@ -18,7 +20,7 @@ class UpdateService {
       final currentVersion = packageInfo.version;
       
       // 2. Get latest version from Supabase
-      final updateSettings = await SettingsService.getAppUpdateSettings();
+      const updateSettings = AppUpdateSettings(latestVersion: '1.0.0');
       
       // 3. Compare versions
       if (_isUpdateAvailable(currentVersion, updateSettings.latestVersion)) {

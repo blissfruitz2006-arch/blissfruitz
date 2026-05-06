@@ -1,12 +1,16 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
+import '../config/flavor_config.dart';
 import '../models/user_profile.dart';
 import '../utils/rate_limiter.dart';
 import 'logger_service.dart';
 
 class AuthService {
-  static final _client = SupabaseConfig.client;
+  @visibleForTesting
+  static SupabaseClient? mockClient;
+
+  static SupabaseClient get _client => mockClient ?? SupabaseConfig.client;
 
   /// Get the current Supabase auth user
   static User? get currentUser => _client.auth.currentUser;
@@ -46,18 +50,26 @@ class AuthService {
     }
 
     try {
+      debugPrint('AuthService: Attempting sign in for $email...');
       final response = await _client.auth.signInWithPassword(
         email: email,
         password: password,
       );
       
+      debugPrint('AuthService: Sign in successful for $email');
       // Log Success
       await LoggerService.logAuth(email: email, success: true);
       
       // Reset limit on success
       RateLimiter.reset('login');
       return response;
+    } on AuthException catch (e) {
+      debugPrint('AuthService: AuthException during sign in: ${e.message} (Status: ${e.statusCode})');
+      // Log Failure
+      await LoggerService.logAuth(email: email, success: false, errorCode: e.toString());
+      rethrow;
     } catch (e) {
+      debugPrint('AuthService: Unexpected error during sign in: $e');
       // Log Failure
       await LoggerService.logAuth(email: email, success: false, errorCode: e.toString());
       rethrow;
@@ -176,7 +188,8 @@ class AuthService {
         return UserProfile.fromJson(data);
       }
       return null;
-    } catch (_) {
+    } catch (e) {
+      debugPrint('Error in getUserProfile: $e');
       return null;
     }
   }
@@ -229,43 +242,158 @@ class AuthService {
     if (finalUser == null) throw Exception('No user logged in');
 
     final userId = finalUser.id;
-    final email = finalUser.email!;
+    final email = finalUser.email ?? '';
+    if (email.isEmpty) throw Exception('User email is required for sync');
     final metadata = finalUser.userMetadata ?? {};
+    final appMetadata = finalUser.appMetadata;
+    
+    debugPrint('AuthService: Syncing user $email (ID: $userId). Current Flavor: ${FlavorConfig.flavor}');
 
     try {
-      // Prepare updates
+      // 1. Determine the source-of-truth role
+      // --- ROLE IDENTIFICATION HIERARCHY ---
+      String? identifiedRole;
+      debugPrint('AuthService: Starting role identification for $email');
+      debugPrint('AuthService: AppMetadata: $appMetadata');
+      debugPrint('AuthService: UserMetadata: $metadata');
+
+      // Helper to parse role from various formats (String or List)
+      String? parseRole(dynamic roleData) {
+        if (roleData == null) return null;
+        if (roleData is List) {
+          return roleData.isNotEmpty ? roleData.first.toString().toLowerCase() : null;
+        }
+        return roleData.toString().toLowerCase();
+      }
+
+      // A. Check app_metadata (most secure, set by admin/triggers)
+      identifiedRole = parseRole(appMetadata['role']);
+      if (identifiedRole != null) {
+        debugPrint('AuthService: [STEP A] Identified role from app_metadata: $identifiedRole');
+      }
+
+      // B. Check user_metadata (fallback)
+      if (identifiedRole == null || identifiedRole == 'customer') {
+        final metaRole = parseRole(metadata['role']);
+        if (metaRole != null) {
+          identifiedRole = metaRole;
+          debugPrint('AuthService: [STEP B] Identified role from user_metadata: $identifiedRole');
+        }
+      }
+
+      // C. Check 'riders' table (Strong check for riders)
+      // Even if we identified as 'customer' or null above, we MUST check if they exist in riders table
+      // as that table is the source of truth for rider status.
+      if (identifiedRole != 'rider' && identifiedRole != 'admin') {
+        try {
+          debugPrint('AuthService: [STEP C] Querying riders table for ID: $userId');
+          final riderRecord = await _client
+              .from('riders')
+              .select('id')
+              .eq('id', userId)
+              .maybeSingle();
+          
+          if (riderRecord != null) {
+            identifiedRole = 'rider';
+            debugPrint('AuthService: [STEP C] FOUND in riders table. Overriding to RIDER.');
+          } else {
+            debugPrint('AuthService: [STEP C] Not found in riders table.');
+          }
+        } catch (e) {
+          debugPrint('AuthService: [STEP C] Riders table check failed: $e');
+        }
+      }
+
+      // D. Check existing 'User' table record
+      if (identifiedRole == null || identifiedRole == 'customer') {
+        try {
+          debugPrint('AuthService: [STEP D] Querying User table for ID: $userId');
+          var existing = await _client
+              .from('User')
+              .select('role')
+              .eq('supabaseId', userId)
+              .maybeSingle();
+          
+          if (existing == null && email.isNotEmpty) {
+            debugPrint('AuthService: [STEP D] Querying User table by email: $email');
+            existing = await _client
+                .from('User')
+                .select('role')
+                .ilike('email', email.toLowerCase())
+                .maybeSingle();
+          }
+          
+          if (existing != null && existing['role'] != null) {
+            identifiedRole = parseRole(existing['role']);
+            debugPrint('AuthService: [STEP D] Identified role from User table: $identifiedRole');
+          } else {
+            debugPrint('AuthService: [STEP D] Not found in User table or role is null.');
+          }
+        } catch (e) {
+          debugPrint('AuthService: [STEP D] User table check failed: $e');
+        }
+      }
+
+      // Final fallback
+      final String finalRole = identifiedRole ?? 'customer';
+      debugPrint('AuthService: FINAL IDENTIFIED ROLE: $finalRole');
+      debugPrint('AuthService: Current App Flavor: ${FlavorConfig.flavor} (isCustomer: ${FlavorConfig.isCustomer}, isRider: ${FlavorConfig.isRider})');
+
+
+      // 2. Prepare updates for the User table
       final updates = {
         'supabaseId': userId,
         'email': email,
         'fullName': metadata['full_name'] ?? metadata['name'] ?? '',
         'username': metadata['user_name'] ?? email.split('@')[0],
         'avatarUrl': metadata['avatar_url'] ?? metadata['picture'],
+        'role': finalRole,
         'isActive': true,
         'updatedAt': DateTime.now().toIso8601String(),
       };
 
-      // Find existing record to preserve role
-      var existing = await _client.from('User').select().eq('supabaseId', userId).maybeSingle();
-      existing ??= await _client.from('User').select().eq('email', email).maybeSingle();
-
-      if (existing != null) {
-        // Prefer metadata role if DB role is just 'customer' (useful for first-time onboarding)
-        final dbRole = existing['role'];
-        final metaRole = metadata['role'];
-        if (dbRole == 'customer' && metaRole != null) {
-          updates['role'] = metaRole;
-        } else {
-          updates['role'] = dbRole ?? 'customer';
+      // 3. Upsert into User table
+      debugPrint('AuthService: Upserting user record with role: $finalRole');
+      final data = await _client.from('User').upsert(updates, onConflict: 'email').select().single();
+      
+      // 4. Update Auth Metadata to match (essential for Router redirects)
+      // Only update if it's different to avoid unnecessary network calls
+      if (metadata['role'] != finalRole) {
+        debugPrint('AuthService: Updating Auth Metadata role to: $finalRole');
+        try {
+          await _client.auth.updateUser(UserAttributes(data: {'role': finalRole}));
+        } catch (e) {
+          debugPrint('AuthService: Failed to update auth metadata: $e');
+          // Non-critical, continue
         }
-      } else {
-        updates['role'] = metadata['role'] ?? 'customer';
       }
 
-      final data = await _client.from('User').upsert(updates, onConflict: 'email').select().single();
-      debugPrint('AuthService: Profile synced successfully. Data: $data');
+      // 5. SECURITY BLOCKING (Persistent)
+      // Check if the user's role is permitted in this application flavor
+      // Admins are permitted in both for management/testing.
+      if (finalRole != 'admin') {
+        if (FlavorConfig.isCustomer && finalRole == 'rider') {
+          debugPrint('AuthService: SECURITY BLOCK! Rider detected in Customer App. Email: $email');
+          // We sign out here to prevent the session from persisting in a blocked state
+          await _client.auth.signOut();
+          throw Exception('RIDER_NOT_ALLOWED: Riders cannot access the customer application.');
+        }
+        
+        if (FlavorConfig.isRider && finalRole == 'customer') {
+          debugPrint('AuthService: SECURITY BLOCK! Customer detected in Rider App. Email: $email');
+          // We sign out here to prevent the session from persisting in a blocked state
+          await _client.auth.signOut();
+          throw Exception('CUSTOMER_NOT_ALLOWED: Customers cannot access the rider application.');
+        }
+      }
+
+      debugPrint('AuthService: Sync successful for $email as $finalRole');
       return UserProfile.fromJson(data);
+    } on AuthException catch (e) {
+      debugPrint('AuthService: AuthException during profile sync: ${e.message} (Status: ${e.statusCode})');
+      rethrow;
     } catch (e) {
-      debugPrint('AuthService: Profile sync failed: $e');
+      debugPrint('AuthService: Profile sync failed with unexpected error: $e');
       rethrow;
     }
   }
@@ -299,3 +427,27 @@ class AuthService {
     }
   }
 }
+
+/// Extension to convert Supabase Auth State stream to a Listenable for GoRouter
+extension AuthStreamExtension on Stream<AuthState> {
+  Listenable asRefreshListenable() {
+    final notifier = _DisposableValueNotifier<AuthState?>(null);
+    final subscription = listen((state) => notifier.value = state);
+    notifier._subscription = subscription;
+    return notifier;
+  }
+}
+
+/// ValueNotifier that cancels its stream subscription on dispose
+class _DisposableValueNotifier<T> extends ValueNotifier<T> {
+  _DisposableValueNotifier(super.value);
+  
+  dynamic _subscription;
+  
+  @override
+  void dispose() {
+    _subscription?.cancel();
+    super.dispose();
+  }
+}
+

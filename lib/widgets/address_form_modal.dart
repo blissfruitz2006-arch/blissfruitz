@@ -223,7 +223,7 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
       
       final addr = Address(
         id: widget.address?.id,
-        userId: user.id,
+        userId: user.supabaseId,
         label: _label,
         fullName: _fullNameController.text,
         phone: _phoneController.text,
@@ -236,12 +236,13 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
         longitude: _longitude,
       );
 
+      Address finalAddr;
       if (widget.address == null) {
-        await AddressService.addAddress(addr);
+        finalAddr = await AddressService.addAddress(addr);
       } else {
-        await AddressService.updateAddress(addr);
+        finalAddr = await AddressService.updateAddress(addr);
       }
-      widget.onSave?.call(addr, _emailController.text.trim().isEmpty ? null : _emailController.text.trim());
+      widget.onSave?.call(finalAddr, _emailController.text.trim().isEmpty ? null : _emailController.text.trim());
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
@@ -272,7 +273,7 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisSize: MainAxisSize.max,
         children: [
           const SizedBox(height: 12),
           Container(
@@ -310,24 +311,21 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
                         ),
                         child: Stack(
                           children: [
+                            Container(color: isDark ? Colors.grey[900] : Colors.grey[100]),
+                            const Center(child: Icon(Icons.map_outlined, color: Colors.grey, size: 48)),
                             FlutterMap(
                               mapController: _mapController,
                               options: MapOptions(
                                 initialCenter: _mapCenter,
                                 initialZoom: 15.0,
                                 onTap: (_, point) => _updateLocation(point),
-                                onPositionChanged: (position, hasGesture) {
-                                  if (hasGesture) {
-                                    // Debounce reverse geocoding to avoid rate limits
-                                    setState(() {
-                                      _latitude = position.center.latitude;
-                                      _longitude = position.center.longitude;
-                                    });
-                                  }
-                                },
                                 onMapEvent: (event) {
                                   if (event is MapEventMoveEnd) {
                                     _reverseGeocode(event.camera.center.latitude, event.camera.center.longitude);
+                                    setState(() {
+                                      _latitude = event.camera.center.latitude;
+                                      _longitude = event.camera.center.longitude;
+                                    });
                                   }
                                 },
                               ),
@@ -372,27 +370,54 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
                               right: 10,
                               child: Column(
                                 children: [
-                                  FloatingActionButton.small(
-                                    heroTag: 'locate_bt',
-                                    onPressed: _locating ? null : _getCurrentLocation,
-                                    backgroundColor: Colors.white,
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                    ),
                                     child: _locating 
-                                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                      : const Icon(Icons.my_location, color: AppTheme.primary),
+                                      ? const Padding(
+                                          padding: EdgeInsets.all(10),
+                                          child: CircularProgressIndicator(strokeWidth: 2),
+                                        )
+                                      : IconButton(
+                                          padding: EdgeInsets.zero,
+                                          icon: const Icon(Icons.my_location, color: AppTheme.primary, size: 20),
+                                          onPressed: _locating ? null : _getCurrentLocation,
+                                        ),
                                   ),
                                   const SizedBox(height: 8),
-                                  FloatingActionButton.small(
-                                    heroTag: 'zoom_in',
-                                    onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1),
-                                    backgroundColor: Colors.white,
-                                    child: const Icon(Icons.add, color: AppTheme.primary),
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.add, color: AppTheme.primary, size: 20),
+                                      onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom + 1),
+                                    ),
                                   ),
                                   const SizedBox(height: 8),
-                                  FloatingActionButton.small(
-                                    heroTag: 'zoom_out',
-                                    onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1),
-                                    backgroundColor: Colors.white,
-                                    child: const Icon(Icons.remove, color: AppTheme.primary),
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: const BoxDecoration(
+                                      color: Colors.white,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [BoxShadow(color: Colors.black26, blurRadius: 4)],
+                                    ),
+                                    child: IconButton(
+                                      padding: EdgeInsets.zero,
+                                      icon: const Icon(Icons.remove, color: AppTheme.primary, size: 20),
+                                      onPressed: () => _mapController.move(_mapController.camera.center, _mapController.camera.zoom - 1),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -506,3 +531,4 @@ class _AddressFormModalState extends ConsumerState<AddressFormModal> {
     );
   }
 }
+

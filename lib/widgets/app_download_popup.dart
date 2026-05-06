@@ -151,3 +151,4 @@ class _AppDownloadPopupState extends ConsumerState<AppDownloadPopup> with Single
     );
   }
 }
+

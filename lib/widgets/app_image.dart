@@ -15,6 +15,9 @@ class AppImage extends StatelessWidget {
   /// Massively reduces memory usage for grid thumbnails.
   final int? memCacheWidth;
 
+  /// Semantic label for accessibility and SEO (screen readers, image indexing).
+  final String? semanticLabel;
+
   const AppImage({
     super.key,
     this.path,
@@ -23,6 +26,7 @@ class AppImage extends StatelessWidget {
     this.fit = BoxFit.cover,
     this.borderRadius,
     this.memCacheWidth,
+    this.semanticLabel,
   });
 
   String _resolveUrl(String path) {
@@ -51,14 +55,25 @@ class AppImage extends StatelessWidget {
       errorWidget: (context, url, error) => _placeholder(context),
     );
 
-    if (borderRadius != null) {
-      return ClipRRect(
-        borderRadius: borderRadius!,
-        child: image,
+    Widget result = image;
+
+    // SEO: Wrap with Semantics if a label is provided
+    if (semanticLabel != null && semanticLabel!.isNotEmpty) {
+      result = Semantics(
+        label: semanticLabel,
+        image: true,
+        child: result,
       );
     }
 
-    return image;
+    if (borderRadius != null) {
+      return ClipRRect(
+        borderRadius: borderRadius!,
+        child: result,
+      );
+    }
+
+    return result;
   }
 
   Widget _shimmerPlaceholder(BuildContext context) {

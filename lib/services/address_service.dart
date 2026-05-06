@@ -2,10 +2,10 @@ import '../config/supabase_config.dart';
 import '../models/address.dart';
 
 class AddressService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   /// Get all saved addresses for a user
-  static Future<List<Address>> getUserAddresses(int userId) async {
+  static Future<List<Address>> getUserAddresses(String userId) async {
     final data = await _client
         .from('Address')
         .select()
@@ -62,7 +62,7 @@ class AddressService {
   }
 
   /// Set an address as default
-  static Future<void> setDefault(int addressId, int userId) async {
+  static Future<void> setDefault(int addressId, String userId) async {
     // Unset all defaults for this user
     await _client
         .from('Address')
@@ -77,7 +77,7 @@ class AddressService {
   }
 
   /// Get the default address for a user
-  static Future<Address?> getDefaultAddress(int userId) async {
+  static Future<Address?> getDefaultAddress(String userId) async {
     final data = await _client
         .from('Address')
         .select()

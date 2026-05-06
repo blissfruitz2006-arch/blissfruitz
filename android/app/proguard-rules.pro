@@ -10,13 +10,26 @@
 -keep class com.razorpay.** {*;}
 -dontwarn com.razorpay.**
 
-# Supabase / Postgrest (if needed)
+# Supabase / Postgrest / GoTrue
+-keep class io.supabase.** { *; }
 -keep class io.github.jan.supabase.** { *; }
+-dontwarn io.supabase.**
+-dontwarn io.github.jan.supabase.**
+
+# HTTP / OkHttp
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-dontwarn okhttp3.**
+-dontwarn okio.**
+
+# Image Picker
+-keep class io.flutter.plugins.imagepicker.** { *; }
 
 # General models (prevent shrinking of fields used in JSON)
 -keepclassmembers class * {
   @com.google.gson.annotations.SerializedName <fields>;
 }
+-keep class com.blissfruitz.app.models.** { *; }
 
 # Fix for geolocator/geocoding
 -keep class com.baseflow.geolocator.** { *; }

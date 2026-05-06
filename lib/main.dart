@@ -1,64 +1,37 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_strategy/url_strategy.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'config/supabase_config.dart';
 import 'app.dart';
-import 'services/logger_service.dart';
-import 'package:flutter/services.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Android: Optimized System UI (Edge-to-Edge)
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark, // Default to dark for light surfaces
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
   
-  // Enable edge-to-edge on Android
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-  // 1. Global Error Handling
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    LoggerService.logError(
-      details.exceptionAsString(),
-      stackTrace: details.stack,
-    );
-  };
-
-  PlatformDispatcher.instance.onError = (error, stack) {
-    LoggerService.logError(
-      error.toString(),
-      stackTrace: stack,
-    );
-    return true;
-  };
-
-  // Load environment variables
-  await dotenv.load(fileName: "assets/env_config.txt");
-
-  // Use clean URLs (no hash) on web
-  setPathUrlStrategy();
-
-  // Initialize Supabase
-  await SupabaseConfig.initialize();
-
-  // Initialize Firebase (Push Notifications)
-  try {
-    await Firebase.initializeApp();
-  } catch (e) {
-    debugPrint('Firebase initialization failed: $e');
-    debugPrint('Ensure google-services.json is present for Android push notifications.');
+  if (kIsWeb) {
+    setPathUrlStrategy();
   }
-
+  
+  // Environment Variables
+  // Prefer --dart-define (compile-time, secure for production builds)
+  // Fallback to dotenv file for local development convenience
+  if (SupabaseConfig.supabaseUrl.isEmpty) {
+    try {
+      debugPrint('📦 Loading environment variables from dotenv...');
+      await dotenv.load(fileName: "supabase_env.txt");
+      SupabaseConfig.setRuntimeValues(
+        url: dotenv.get('SUPABASE_URL', fallback: ''),
+        key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
+      );
+      debugPrint('✅ Environment variables loaded from dotenv.');
+    } catch (e) {
+      debugPrint('⚠️ No dotenv file found (expected in production): $e');
+    }
+  } else {
+    debugPrint('✅ Environment variables loaded from --dart-define.');
+  }
+  
   runApp(
     const ProviderScope(
       child: BlissFruitzApp(),

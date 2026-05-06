@@ -49,6 +49,13 @@ class ProfileScreen extends ConsumerWidget {
             _buildAdminMenu(context),
           ],
 
+          // ─── RIDER TOOLS ───
+          if (ref.watch(isRiderProvider)) ...[
+            const SizedBox(height: 12),
+            _buildSectionHeader(context, 'Rider Dashboard'),
+            _buildRiderMenu(context),
+          ],
+
           const SizedBox(height: 120),
         ],
       ),
@@ -165,6 +172,25 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 
+  Widget _buildRiderMenu(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        children: [
+          GestureDetector(
+            onTap: () => context.go('/rider/home'),
+            child: _buildMenuItem(
+              context,
+              Icons.delivery_dining_outlined,
+              'Rider Console',
+              iconColor: AppTheme.primary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMenuItems(BuildContext context, WidgetRef ref) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -269,3 +295,4 @@ class ProfileScreen extends ConsumerWidget {
     );
   }
 }
+

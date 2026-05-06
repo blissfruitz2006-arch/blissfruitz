@@ -19,9 +19,9 @@ class BlogCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isHorizontal) {
-      return RepaintBoundary(child: _buildHorizontalCard(context));
+      return _buildHorizontalCard(context);
     }
-    return RepaintBoundary(child: _buildVerticalCard(context));
+    return _buildVerticalCard(context);
   }
 
   Widget _buildVerticalCard(BuildContext context) {
@@ -193,3 +193,4 @@ class BlogCard extends StatelessWidget {
     );
   }
 }
+

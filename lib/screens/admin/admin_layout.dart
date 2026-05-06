@@ -11,27 +11,63 @@ class AdminLayout extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final isAdmin = ref.watch(isAdminProvider);
+    final userProfileAsync = ref.watch(userProfileProvider);
     
-    // Security: Only allow admins
-    if (!isAdmin) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/'));
-      return const SizedBox.shrink();
-    }
+    return userProfileAsync.when(
+      data: (profile) {
+        final isAdmin = profile?.role == 'admin';
+        
+        if (!isAdmin) {
+          debugPrint('AdminLayout: User is not admin. Redirecting...');
+          WidgetsBinding.instance.addPostFrameCallback((_) => context.go('/'));
+          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        }
 
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isDesktop = screenWidth >= 1100;
+        final screenWidth = MediaQuery.of(context).size.width;
+        final isDesktop = screenWidth >= 1100;
 
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      drawer: !isDesktop ? _buildSidebar(context, ref, isMobile: true) : null,
-      body: Row(
-        children: [
-          if (isDesktop) _buildSidebar(context, ref),
-          Expanded(
-            child: child,
+        return Scaffold(
+          backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+          floatingActionButton: const SizedBox.shrink(),
+          drawer: !isDesktop ? _buildSidebar(context, ref, isMobile: true) : null,
+          body: Row(
+            children: [
+              if (isDesktop) _buildSidebar(context, ref),
+              Expanded(
+                child: child,
+              ),
+            ],
           ),
-        ],
+        );
+      },
+      loading: () => const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 16),
+              Text('Verifying Admin Access...'),
+            ],
+          ),
+        ),
+      ),
+      error: (err, stack) => Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text('Authentication Error: $err'),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => ref.invalidate(userProfileProvider),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -181,7 +217,7 @@ class AdminLayout extends ConsumerWidget {
                 _buildSidebarSection(context, 'SYSTEM', [
                   _SidebarItem(
                     icon: Icons.settings_rounded, 
-                    label: 'Store Settings', 
+                    label: 'Settings', 
                     isActive: GoRouterState.of(context).matchedLocation.startsWith('/admin/settings'),
                     onTap: () => context.goNamed('admin-settings'),
                   ),
@@ -379,3 +415,4 @@ class _SidebarItem extends StatelessWidget {
     );
   }
 }
+

@@ -3,15 +3,76 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../config/theme.dart';
 import '../../widgets/app_image.dart';
+import '../../services/coupon_service.dart';
 
 
-class CartScreen extends ConsumerWidget {
+class CartScreen extends ConsumerStatefulWidget {
   const CartScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<CartScreen> createState() => _CartScreenState();
+}
+
+class _CartScreenState extends ConsumerState<CartScreen> {
+  final _couponController = TextEditingController();
+  bool _isValidatingCoupon = false;
+
+  @override
+  void dispose() {
+    _couponController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _applyCoupon() async {
+    final code = _couponController.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() => _isValidatingCoupon = true);
+    try {
+      final cart = ref.read(cartProvider);
+      
+      final user = ref.read(userProfileProvider).valueOrNull;
+      final coupon = await CouponService.validateCoupon(
+        code, 
+        userId: user?.supabaseId,
+      );
+
+      if (coupon == null) {
+        throw Exception('Invalid or expired coupon code');
+      }
+
+      if (coupon.minOrder != null && cart.subtotal < coupon.minOrder!) {
+        throw Exception('Minimum order amount for this coupon is ₹${coupon.minOrder}');
+      }
+
+      final discount = coupon.calculateDiscount(cart.subtotal);
+      ref.read(cartProvider.notifier).applyCoupon(coupon.code, discount);
+      _couponController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Coupon applied! You saved ₹$discount')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')), 
+            backgroundColor: AppTheme.error
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isValidatingCoupon = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final cart = ref.watch(cartProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     final isWide = screenWidth > 768;
@@ -128,6 +189,8 @@ class CartScreen extends ConsumerWidget {
                   children: [
                     Text(
                       item.product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: GoogleFonts.outfit(
                         fontWeight: FontWeight.w700,
                         fontSize: 16,
@@ -184,12 +247,15 @@ class CartScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    '₹${item.totalPrice.toStringAsFixed(0)}',
-                    style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                      color: AppTheme.primary,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      '₹${item.totalPrice.toStringAsFixed(0)}',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18,
+                        color: AppTheme.primary,
+                      ),
                     ),
                   ),
                 ],
@@ -237,6 +303,66 @@ class CartScreen extends ConsumerWidget {
               valueColor: AppTheme.primary,
             ),
           ],
+          
+          // Coupon Section
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 16),
+          if (cart.couponCode != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Coupon "${cart.couponCode}" applied!',
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.read(cartProvider.notifier).removeCoupon(),
+                    child: const Text('Remove', style: TextStyle(color: Colors.red, fontSize: 12)),
+                  ),
+                ],
+              ),
+            )
+          else
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _couponController,
+                    decoration: InputDecoration(
+                      hintText: 'Coupon Code',
+                      hintStyle: const TextStyle(fontSize: 12),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      filled: true,
+                      fillColor: AppTheme.surfaceContainerLowest,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton(
+                  onPressed: _isValidatingCoupon ? null : _applyCoupon,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    minimumSize: const Size(0, 40),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  child: _isValidatingCoupon
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Apply'),
+                ),
+              ],
+            ),
+          
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 14),
             child: Container(height: 1, color: AppTheme.surfaceContainer),
@@ -251,12 +377,16 @@ class CartScreen extends ConsumerWidget {
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              Text(
-                '₹${cart.total.toStringAsFixed(0)}',
-                style: GoogleFonts.outfit(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primary,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  '₹${cart.total.toStringAsFixed(0)}',
+                  style: GoogleFonts.outfit(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.primary,
+                  ),
                 ),
               ),
             ],
@@ -392,3 +522,4 @@ class CartScreen extends ConsumerWidget {
     );
   }
 }
+

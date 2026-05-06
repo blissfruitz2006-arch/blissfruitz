@@ -2,7 +2,7 @@ import '../config/supabase_config.dart';
 import '../models/blog_post.dart';
 
 class BlogService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   static Future<List<BlogPost>> getPosts({int limit = 10}) async {
     final data = await _client

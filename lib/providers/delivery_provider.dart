@@ -43,6 +43,12 @@ final orderAssignmentProvider = StreamProvider.family.autoDispose<DeliveryAssign
       .map((data) => data.isEmpty ? null : DeliveryAssignment.fromJson(data.first));
 });
 
+/// Future provider to get full assignment details including rider info
+final orderAssignmentFutureProvider = FutureProvider.family.autoDispose<DeliveryAssignment?, int>((ref, orderId) async {
+  final service = ref.watch(deliveryServiceProvider);
+  return await service.getOrderAssignment(orderId);
+});
+
 /// Stream provider for counting active riders (Online)
 final activeRiderCountProvider = StreamProvider.autoDispose<int>((ref) {
   return SupabaseConfig.client
@@ -63,4 +69,13 @@ final outForDeliveryCountProvider = StreamProvider.autoDispose<int>((ref) {
           return status != 'delivered' && status != 'failed';
         }).length;
       });
+});
+
+/// Stream provider for all assignments for the current rider
+final myAssignmentsProvider = StreamProvider.autoDispose<List<DeliveryAssignment>>((ref) {
+  final user = SupabaseConfig.client.auth.currentUser;
+  if (user == null) return Stream.value([]);
+  
+  final service = ref.watch(deliveryServiceProvider);
+  return service.watchRiderAssignments(user.id);
 });

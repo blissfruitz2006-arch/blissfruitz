@@ -187,7 +187,7 @@ class _AdminImagePickerState extends State<AdminImagePicker> {
         TextField(
           controller: _urlController,
           decoration: InputDecoration(
-            hintText: 'Pate image URL here...',
+            hintText: 'Paste image URL here...',
             labelText: 'Direct Link',
             filled: true,
             fillColor: AppTheme.surfaceContainerLow,
@@ -251,3 +251,4 @@ class _AdminImagePickerState extends State<AdminImagePicker> {
     );
   }
 }
+

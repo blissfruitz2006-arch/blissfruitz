@@ -109,6 +109,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        floatingActionButton: const SizedBox.shrink(),
       body: Title(
         title: 'Register | Blissfruitz',
         color: Colors.green,
@@ -413,3 +414,4 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     );
   }
 }
+

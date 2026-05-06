@@ -3,11 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import '../../../config/theme.dart';
-
-import '../../../providers/admin_provider.dart';
-import '../../../services/admin_service.dart';
-import '../../../services/invoice_service.dart';
+import 'package:blissfruitz/config/theme.dart';
+import 'package:blissfruitz/providers/admin_provider.dart';
+import 'package:blissfruitz/services/admin_service.dart';
+import 'package:blissfruitz/services/invoice_service.dart';
 
 class OrderListScreen extends ConsumerStatefulWidget {
   final String? initialFilter;
@@ -174,7 +173,7 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                           onPressed: () => context.push('/admin/riders/assign/${order.id}'),
                         ),
                       DropdownButton<String>(
-                        value: ['pending', 'confirmed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'return_approved', 'return_rejected', 'returned', 'replacement_requested', 'replacement_approved', 'replacement_rejected', 'replaced'].contains(order.orderStatus)
+                        value: ['pending', 'confirmed', 'processing', 'shipped', 'delivered', 'out_for_delivery', 'cancelled', 'failed', 'return_requested', 'return_approved', 'return_rejected', 'returned', 'replacement_requested', 'replacement_approved', 'replacement_rejected', 'replaced'].contains(order.orderStatus)
                             ? order.orderStatus
                             : 'pending',
                         underline: const SizedBox(),
@@ -187,9 +186,12 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
                         items: const [
                           DropdownMenuItem(value: 'pending', child: Text('Pending')),
                           DropdownMenuItem(value: 'confirmed', child: Text('Confirmed')),
+                          DropdownMenuItem(value: 'processing', child: Text('Processing')),
                           DropdownMenuItem(value: 'shipped', child: Text('Shipped')),
                           DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
+                          DropdownMenuItem(value: 'out_for_delivery', child: Text('Out for Delivery')),
                           DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
+                          DropdownMenuItem(value: 'failed', child: Text('Failed')),
                           DropdownMenuItem(value: 'return_requested', child: Text('Return Requested')),
                           DropdownMenuItem(value: 'return_approved', child: Text('Return Approved')),
                           DropdownMenuItem(value: 'return_rejected', child: Text('Return Rejected')),
@@ -287,7 +289,9 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
       case 'pending':
         return Colors.orange;
       case 'confirmed':
+      case 'processing':
       case 'shipped':
+      case 'out_for_delivery':
         return Colors.blue;
       case 'delivered':
         return Colors.green;
@@ -310,3 +314,4 @@ class _OrderListScreenState extends ConsumerState<OrderListScreen> {
     }
   }
 }
+

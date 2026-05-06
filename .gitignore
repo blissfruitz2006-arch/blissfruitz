@@ -47,3 +47,29 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Credentials & Environment
+assets/env_config.txt
+
+# Build & Analysis outputs
+analyze_output.txt
+analyze_output_2.txt
+analyze_full_output.txt
+build_output.txt
+flutter_run_output.txt
+
+# Development scratch directories
+scratch/
+graphify-out/
+get-shit-done/
+.fake_toolchain/
+
+# Agent & Planning
+.planning/
+.agent/
+.tmp_bin/
+supabase_env.txt
+assets/supabase_env.txt
+scratch.dart
+
+

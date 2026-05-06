@@ -5,9 +5,9 @@ import 'auth_provider.dart';
 
 final userOrdersProvider = FutureProvider.autoDispose<List<Order>>((ref) async {
   final userProfile = ref.watch(userProfileProvider).valueOrNull;
-  if (userProfile == null) return [];
+  if (userProfile == null || userProfile.supabaseId == null) return [];
 
-  return OrderService.getUserOrders(userProfile.id);
+  return OrderService.getUserOrders(userProfile.supabaseId!);
 });
 
 final orderDetailsProvider = FutureProvider.autoDispose.family<Order?, int>((
@@ -15,4 +15,11 @@ final orderDetailsProvider = FutureProvider.autoDispose.family<Order?, int>((
   orderId,
 ) async {
   return OrderService.getOrderById(orderId);
+});
+
+final orderDetailsStreamProvider = StreamProvider.autoDispose.family<Order?, int>((
+  ref,
+  orderId,
+) {
+  return OrderService.getOrderStream(orderId);
 });

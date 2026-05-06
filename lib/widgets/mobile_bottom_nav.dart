@@ -1,48 +1,80 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/auth_service.dart';
 
-class MobileBottomNav extends StatelessWidget {
-  const MobileBottomNav({super.key});
+import '../providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+class MobileBottomNav extends ConsumerWidget {
+  final GoRouterState state;
+  const MobileBottomNav({super.key, required this.state});
 
   @override
-  Widget build(BuildContext context) {
-    final location = GoRouterState.of(context).uri.toString();
+  Widget build(BuildContext context, WidgetRef ref) {
+    final location = state.uri.toString();
     final colorScheme = Theme.of(context).colorScheme;
     final screenWidth = MediaQuery.sizeOf(context).width;
 
+    final isRider = ref.watch(isRiderProvider);
+    
     int currentIndex = 0;
-    if (location.startsWith('/shop')) {
-      currentIndex = 1;
-    } else if (location.startsWith('/cart')) {
-      currentIndex = 2;
-    } else if (location.startsWith('/profile') ||
-        location.startsWith('/login')) {
-      currentIndex = 3;
+    if (isRider) {
+      if (location.startsWith('/rider/home')) {
+        currentIndex = 0;
+      } else if (location.startsWith('/rider/earnings')) {
+        currentIndex = 2;
+      } else if (location.startsWith('/rider/profile')) {
+        currentIndex = 3;
+      }
+    } else {
+      if (location == '/' || location.startsWith('/home')) {
+        currentIndex = 0;
+      } else if (location.startsWith('/shop')) {
+        currentIndex = 1;
+      } else if (location.startsWith('/cart')) {
+        currentIndex = 2;
+      } else if (location.startsWith('/profile') ||
+          location.startsWith('/login') ||
+          location.startsWith('/register')) {
+        currentIndex = 3;
+      }
     }
 
     final items = [
       _NavItem(
-        icon: Icons.eco_outlined,
-        activeIcon: Icons.eco,
-        label: 'Home',
+        icon: Icons.home_outlined,
+        activeIcon: Icons.home,
+        label: isRider ? 'Dashboard' : 'Home',
         isActive: currentIndex == 0,
       ),
-      _NavItem(
-        icon: Icons.shopping_basket_outlined,
-        activeIcon: Icons.shopping_basket,
-        label: 'Shop',
-        isActive: currentIndex == 1,
-      ),
-      _NavItem(
-        icon: Icons.shopping_cart_outlined,
-        activeIcon: Icons.shopping_cart,
-        label: 'Cart',
-        isActive: currentIndex == 2,
-      ),
+      isRider 
+        ? _NavItem(
+            icon: Icons.delivery_dining_outlined,
+            activeIcon: Icons.delivery_dining,
+            label: 'Deliveries',
+            isActive: currentIndex == 1,
+          )
+        : _NavItem(
+            icon: Icons.shopping_basket_outlined,
+            activeIcon: Icons.shopping_basket,
+            label: 'Shop',
+            isActive: currentIndex == 1,
+          ),
+      isRider
+        ? _NavItem(
+            icon: Icons.account_balance_wallet_outlined,
+            activeIcon: Icons.account_balance_wallet,
+            label: 'Earnings',
+            isActive: currentIndex == 2,
+          )
+        : _NavItem(
+            icon: Icons.shopping_cart_outlined,
+            activeIcon: Icons.shopping_cart,
+            label: 'Cart',
+            isActive: currentIndex == 2,
+          ),
       _NavItem(
         icon: Icons.person_outline,
         activeIcon: Icons.person,
@@ -51,44 +83,39 @@ class MobileBottomNav extends StatelessWidget {
       ),
     ];
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-        child: Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.paddingOf(context).bottom + 4,
-            top: 4,
+    return Container(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.paddingOf(context).bottom + 4,
+        top: 4,
+      ),
+      decoration: BoxDecoration(
+        color: colorScheme.surface.withValues(alpha: 0.98),
+        border: Border(
+          top: BorderSide(
+            color: colorScheme.outlineVariant.withValues(alpha: 0.2),
+            width: 0.5,
           ),
-          decoration: BoxDecoration(
-            color: colorScheme.surface.withValues(alpha: 0.85),
-            border: Border(
-              top: BorderSide(
-                color: colorScheme.outlineVariant.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, -2),
-              ),
-            ],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -2),
           ),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: screenWidth < 280 ? 8 : (screenWidth < 350 ? 12 : 16),
-              vertical: screenWidth < 280 ? 2 : 4,
-            ),
+        ],
+      ),
+      child: Padding(
+        padding: EdgeInsets.symmetric(
+          horizontal: screenWidth < 280 ? 8 : (screenWidth < 350 ? 12 : 16),
+          vertical: screenWidth < 280 ? 2 : 4,
+        ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: items.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
-                return _buildNavItem(context, item, index, currentIndex);
+                return _buildNavItem(context, ref, item, index, currentIndex);
               }).toList(),
-            ),
-          ),
         ),
       ),
     );
@@ -96,18 +123,24 @@ class MobileBottomNav extends StatelessWidget {
 
   Widget _buildNavItem(
     BuildContext context,
+    WidgetRef ref,
     _NavItem item,
     int index,
     int currentIndex,
   ) {
-    final routes = ['/', '/shop', '/cart', '/profile'];
     final colorScheme = Theme.of(context).colorScheme;
+    final isRider = ref.watch(isRiderProvider);
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
           HapticFeedback.selectionClick();
-          if (index == 3 && !GoRouterState.of(context).uri.toString().contains('login')) {
+          
+          final routes = isRider 
+            ? ['/rider/home', '/rider/earnings', '/rider/earnings', '/rider/profile']
+            : ['/', '/shop', '/cart', '/profile'];
+          
+          if (index == 3 && !state.uri.toString().contains('login')) {
             final isLoggedIn = AuthService.isLoggedIn;
             if (!isLoggedIn) {
               context.push('/login');

@@ -1,13 +1,20 @@
 <!DOCTYPE html>
-<html>
+<html lang="en-IN">
 <head>
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="BlissFruitz — Premium fresh fruits and dry fruits delivered to your doorstep. Quality you can taste, freshness you can feel.">
-  <meta name="keywords" content="fresh fruits, dry fruits, organic, delivery, premium, BlissFruitz">
+
+  <!-- Primary SEO -->
+  <title>Fresh Fruits & Dry Fruits Delivery in Mumbai | BlissFruitz</title>
+  <meta name="description"
+        content="BlissFruitz — Premium fresh fruits and dry fruits delivered to your doorstep in Mumbai. Handpicked seasonal fruits, exotic imports, and premium dry fruits. Order online, fast delivery.">
+  <meta name="keywords" content="fresh fruits delivery Mumbai, buy fruits online Mumbai, dry fruits online, organic fruits delivery, seasonal fruits Mumbai, exotic fruits, premium dry fruits, BlissFruitz">
+  <link rel="canonical" href="https://blissfruitz.com/">
+
+  <!-- Theme & Verification -->
   <meta name="theme-color" content="#16a34a">
   <meta name="google-site-verification" content="Kiuurd5oZwNlhI3bikI7kj-7DNofpabrmH_WvJAs5jU" />
 
@@ -20,10 +27,22 @@
     gtag('config', 'G-E99XSSC4K0');
   </script>
 
-  <!-- Open Graph -->
-  <meta property="og:title" content="BlissFruitz — Premium Fresh Fruits">
-  <meta property="og:description" content="Handpicked seasonal fruits and premium dry fruits delivered fresh to your door.">
+  <!-- Open Graph / WhatsApp / Facebook -->
+  <meta property="og:title" content="Fresh Fruits & Dry Fruits Delivery in Mumbai | BlissFruitz">
+  <meta property="og:description" content="Handpicked seasonal fruits and premium dry fruits delivered fresh to your door in Mumbai. Order online, fast delivery.">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="https://blissfruitz.com/">
+  <meta property="og:image" content="https://blissfruitz.com/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="en_IN">
+  <meta property="og:site_name" content="BlissFruitz">
+
+  <!-- Twitter/X Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Fresh Fruits & Dry Fruits Delivery Mumbai | BlissFruitz">
+  <meta name="twitter:description" content="Premium fresh fruits and dry fruits delivered to your door in Mumbai. Order online.">
+  <meta name="twitter:image" content="https://blissfruitz.com/og-image.jpg">
 
   <!-- Google Fonts preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -33,15 +52,77 @@
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="BlissFruitz">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>BlissFruitz — Premium Fresh Fruits & Dry Fruits</title>
   <link rel="manifest" href="manifest.json">
 
+  <!-- Performance: Preload Flutter engine -->
+  <link rel="preload" href="flutter_bootstrap.js" as="script">
+
+  <!-- Razorpay -->
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+
+  <!-- Organization Schema (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "BlissFruitz",
+    "url": "https://blissfruitz.com",
+    "logo": "https://blissfruitz.com/icons/Icon-512.png",
+    "description": "Premium fresh fruits and dry fruits delivered to your doorstep in Mumbai.",
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "contactType": "customer service",
+      "availableLanguage": ["English", "Hindi", "Marathi"]
+    },
+    "areaServed": {
+      "@type": "City",
+      "name": "Mumbai"
+    },
+    "sameAs": [
+      "https://www.instagram.com/blissfruitz",
+      "https://www.facebook.com/blissfruitz"
+    ]
+  }
+  </script>
+
+  <!-- LocalBusiness Schema (JSON-LD) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "BlissFruitz",
+    "@id": "https://blissfruitz.com",
+    "url": "https://blissfruitz.com",
+    "image": "https://blissfruitz.com/og-image.jpg",
+    "priceRange": "₹₹",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Mumbai",
+      "addressRegion": "Maharashtra",
+      "addressCountry": "IN"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 19.0760,
+      "longitude": 72.8777
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"],
+      "opens": "07:00",
+      "closes": "21:00"
+    },
+    "hasOfferCatalog": {
+      "@type": "OfferCatalog",
+      "name": "Fresh Fruits and Dry Fruits"
+    }
+  }
+  </script>
 
   <style>
     body {
@@ -89,9 +170,42 @@
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    /* SEO: Noscript fallback content for crawlers */
+    noscript .seo-content {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 40px 20px;
+      font-family: sans-serif;
+      color: #333;
+    }
+    noscript h1 { color: #16a34a; font-size: 24px; }
+    noscript a { color: #16a34a; }
   </style>
 </head>
 <body>
+  <!-- SEO: Static HTML fallback for search engine crawlers that can't execute JS -->
+  <noscript>
+    <div class="seo-content">
+      <h1>BlissFruitz — Fresh Fruits & Dry Fruits Delivery in Mumbai</h1>
+      <p>Premium fresh fruits and dry fruits delivered to your doorstep in Mumbai. Handpicked seasonal fruits, exotic imports, and premium dry fruits. Order online for fast delivery.</p>
+      <h2>Our Categories</h2>
+      <ul>
+        <li><a href="/shop">Shop All Fruits</a></li>
+        <li><a href="/shop?category=fresh-fruits">Fresh Fruits</a></li>
+        <li><a href="/shop?category=dry-fruits">Dry Fruits</a></li>
+      </ul>
+      <h2>Quick Links</h2>
+      <ul>
+        <li><a href="/blog">Blog — Fruitful Living</a></li>
+        <li><a href="/contact">Contact Us</a></li>
+        <li><a href="/terms">Terms & Conditions</a></li>
+        <li><a href="/privacy">Privacy Policy</a></li>
+      </ul>
+      <p>© BlissFruitz. Premium fruit delivery service in Mumbai, Maharashtra, India.</p>
+    </div>
+  </noscript>
+
   <div class="loading-container" id="loading-indicator">
     <div class="logo-text">BlissFruitz</div>
     <div class="spinner"></div>
@@ -99,7 +213,56 @@
 
   <script src="flutter_bootstrap.js" async></script>
   
+  <!-- SEO: JavaScript helpers for dynamic meta tag and schema updates from Dart -->
   <script>
+    // Called from Dart via js_interop to update meta tags per route
+    window.updateSeoMeta = function(title, description, url, imageUrl) {
+      if (title) {
+        document.title = title;
+        var ogTitle = document.querySelector('meta[property="og:title"]');
+        if (ogTitle) ogTitle.setAttribute('content', title);
+        var twTitle = document.querySelector('meta[name="twitter:title"]');
+        if (twTitle) twTitle.setAttribute('content', title);
+      }
+      if (description) {
+        var desc = document.querySelector('meta[name="description"]');
+        if (desc) desc.setAttribute('content', description);
+        var ogDesc = document.querySelector('meta[property="og:description"]');
+        if (ogDesc) ogDesc.setAttribute('content', description);
+        var twDesc = document.querySelector('meta[name="twitter:description"]');
+        if (twDesc) twDesc.setAttribute('content', description);
+      }
+      if (url) {
+        var ogUrl = document.querySelector('meta[property="og:url"]');
+        if (ogUrl) ogUrl.setAttribute('content', url);
+        var canonical = document.querySelector('link[rel="canonical"]');
+        if (canonical) canonical.setAttribute('href', url);
+      }
+      if (imageUrl) {
+        var ogImg = document.querySelector('meta[property="og:image"]');
+        if (ogImg) ogImg.setAttribute('content', imageUrl);
+        var twImg = document.querySelector('meta[name="twitter:image"]');
+        if (twImg) twImg.setAttribute('content', imageUrl);
+      }
+    };
+
+    // Called from Dart to inject JSON-LD schema into <head>
+    window.injectJsonLd = function(jsonString, elementId) {
+      var existing = document.getElementById(elementId);
+      if (existing) existing.remove();
+      var script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.id = elementId;
+      script.textContent = jsonString;
+      document.head.appendChild(script);
+    };
+
+    // Called from Dart to remove a dynamic schema
+    window.removeJsonLd = function(elementId) {
+      var existing = document.getElementById(elementId);
+      if (existing) existing.remove();
+    };
+
     window.addEventListener('load', function(ev) {
       // The loading indicator is automatically removed by the Flutter engine 
       // when it's ready, but we can also hide it explicitly if needed.

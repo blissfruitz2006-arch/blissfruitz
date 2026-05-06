@@ -40,9 +40,10 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
           final filteredProducts = products.where((p) {
             final matchesSearch =
                 p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                    (p.sku?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
-                        false);
-            final matchesCategory = _selectedCategoryId == null ||
+                (p.sku?.toLowerCase().contains(_searchQuery.toLowerCase()) ??
+                    false);
+            final matchesCategory =
+                _selectedCategoryId == null ||
                 p.categoryId == _selectedCategoryId;
             return matchesSearch && matchesCategory;
           }).toList();
@@ -58,7 +59,10 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                 surfaceTintColor: Colors.transparent,
                 title: _searchQuery.isEmpty && _selectedCategoryId == null
                     ? null
-                    : Text('Inventory', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
+                    : Text(
+                        'Inventory',
+                        style: GoogleFonts.outfit(fontWeight: FontWeight.w800),
+                      ),
                 flexibleSpace: FlexibleSpaceBar(
                   stretchModes: const [StretchMode.fadeTitle],
                   centerTitle: false,
@@ -73,7 +77,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                   ),
                 ),
               ),
-              
+
               // Search & Filter Header
               SliverToBoxAdapter(
                 child: Padding(
@@ -85,29 +89,43 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         decoration: BoxDecoration(
                           color: AppTheme.surfaceContainerLow,
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppTheme.outlineVariant.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: AppTheme.outlineVariant.withValues(
+                              alpha: 0.5,
+                            ),
+                          ),
                         ),
                         child: TextField(
                           controller: _searchController,
                           style: GoogleFonts.beVietnamPro(fontSize: 14),
                           decoration: InputDecoration(
                             hintText: 'Search by name or SKU...',
-                            prefixIcon: const Icon(Icons.search_rounded, size: 20, color: AppTheme.primary),
-                            suffixIcon: _searchQuery.isNotEmpty 
-                              ? IconButton(
-                                  icon: const Icon(Icons.clear_rounded, size: 18),
-                                  onPressed: () {
-                                    setState(() {
-                                      _searchController.clear();
-                                      _searchQuery = '';
-                                    });
-                                  },
-                                )
-                              : null,
+                            prefixIcon: const Icon(
+                              Icons.search_rounded,
+                              size: 20,
+                              color: AppTheme.primary,
+                            ),
+                            suffixIcon: _searchQuery.isNotEmpty
+                                ? IconButton(
+                                    icon: const Icon(
+                                      Icons.clear_rounded,
+                                      size: 18,
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        _searchController.clear();
+                                        _searchQuery = '';
+                                      });
+                                    },
+                                  )
+                                : null,
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 12,
+                            ),
                           ),
-                          onChanged: (val) => setState(() => _searchQuery = val),
+                          onChanged: (val) =>
+                              setState(() => _searchQuery = val),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -121,28 +139,41 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                             itemBuilder: (context, index) {
                               final isAll = index == 0;
                               final cat = isAll ? null : categories[index - 1];
-                              final isSelected = isAll 
-                                  ? _selectedCategoryId == null 
+                              final isSelected = isAll
+                                  ? _selectedCategoryId == null
                                   : _selectedCategoryId == cat?.id;
 
                               return Padding(
                                 padding: const EdgeInsets.only(right: 8),
                                 child: ChoiceChip(
-                                  label: Text(isAll ? 'All Categories' : cat!.name),
+                                  label: Text(
+                                    isAll ? 'All Categories' : cat!.name,
+                                  ),
                                   selected: isSelected,
-                                  onSelected: (val) => setState(() => 
-                                      _selectedCategoryId = isAll ? null : (val ? cat?.id : null)),
+                                  onSelected: (val) => setState(
+                                    () => _selectedCategoryId = isAll
+                                        ? null
+                                        : (val ? cat?.id : null),
+                                  ),
                                   backgroundColor: AppTheme.surfaceContainerLow,
-                                  selectedColor: AppTheme.primary.withValues(alpha: 0.1),
+                                  selectedColor: AppTheme.primary.withValues(
+                                    alpha: 0.1,
+                                  ),
                                   labelStyle: GoogleFonts.outfit(
                                     fontSize: 12,
-                                    fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                    color: isSelected ? AppTheme.primary : AppTheme.onSurfaceVariant,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? AppTheme.primary
+                                        : AppTheme.onSurfaceVariant,
                                   ),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                     side: BorderSide(
-                                      color: isSelected ? AppTheme.primary : Colors.transparent,
+                                      color: isSelected
+                                          ? AppTheme.primary
+                                          : Colors.transparent,
                                       width: 1,
                                     ),
                                   ),
@@ -166,8 +197,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(Icons.search_off_rounded,
-                            size: 64, color: AppTheme.primary.withValues(alpha: 0.1)),
+                        Icon(
+                          Icons.search_off_rounded,
+                          size: 64,
+                          color: AppTheme.primary.withValues(alpha: 0.1),
+                        ),
                         const SizedBox(height: 16),
                         Text(
                           'No products found',
@@ -211,10 +245,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                                       Positioned.fill(
                                         child: Container(
                                           decoration: BoxDecoration(
-                                          color: Colors.black.withValues(alpha: 0.4),
+                                            color: Colors.black.withValues(alpha: 0.4),
                                             borderRadius: BorderRadius.circular(12),
                                           ),
-                                          child: const Icon(Icons.visibility_off_rounded, color: Colors.white, size: 20),
+                                          child: const Icon(Icons.visibility_off_rounded,
+                                              color: Colors.white, size: 20),
                                         ),
                                       ),
                                   ],
@@ -261,7 +296,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                                       ),
                                       const SizedBox(height: 6),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 2),
                                         decoration: BoxDecoration(
                                           color: product.stockQuantity > 10
                                               ? Colors.green.withValues(alpha: 0.1)
@@ -322,8 +358,8 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                                           padding: const EdgeInsets.all(4),
                                         ),
                                         IconButton(
-                                          onPressed: () =>
-                                              _confirmDelete(context, ref, product),
+                                          onPressed: () => _confirmDelete(
+                                              context, ref, product),
                                           icon: const Icon(
                                               Icons.delete_outline_rounded,
                                               size: 20,
@@ -361,7 +397,10 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
   }
 
   void _confirmDelete(
-      BuildContext context, WidgetRef ref, dynamic product) async {
+    BuildContext context,
+    WidgetRef ref,
+    dynamic product,
+  ) async {
     final confirm = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: true,
@@ -386,7 +425,11 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                         color: AppTheme.error.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.delete_outline_rounded, color: AppTheme.error, size: 32),
+                      child: const Icon(
+                        Icons.delete_outline_rounded,
+                        color: AppTheme.error,
+                        size: 32,
+                      ),
                     ),
                     const SizedBox(height: 24),
                     Text(
@@ -413,7 +456,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                             onPressed: () => Navigator.pop(context, false),
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('Cancel'),
                           ),
@@ -427,7 +472,9 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               elevation: 0,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
                             ),
                             child: const Text('Delete'),
                           ),
@@ -443,7 +490,7 @@ class _ProductListScreenState extends ConsumerState<ProductListScreen> {
       },
     );
 
-      if (confirm == true) {
+    if (confirm == true) {
       try {
         await AdminService.deleteProduct(product.id);
         if (context.mounted) {

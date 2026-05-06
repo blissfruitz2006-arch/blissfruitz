@@ -31,13 +31,14 @@ void openRazorpayCheckout({
   required String contact,
   required String email,
   String currency = 'INR',
+  String? orderId,
   required void Function(String paymentId, String orderId, String signature) onSuccess,
   required void Function(int code, String message) onFailure,
 }) {
   try {
-    // Check if Razorpay is loaded
     if (globalContext.getProperty('Razorpay'.toJS).isUndefinedOrNull) {
-      onFailure(-1, 'Razorpay SDK not loaded. Please check your internet connection or Content Security Policy.');
+      debugPrint('CRITICAL: Razorpay SDK not found on window object.');
+      onFailure(-1, 'Razorpay SDK not loaded. Please ensure you are online and refresh the page.');
       return;
     }
 
@@ -47,6 +48,10 @@ void openRazorpayCheckout({
     options.setProperty('currency'.toJS, currency.toJS);
     options.setProperty('name'.toJS, name.toJS);
     options.setProperty('description'.toJS, description.toJS);
+    
+    if (orderId != null && orderId.isNotEmpty) {
+      options.setProperty('order_id'.toJS, orderId.toJS);
+    }
 
     final prefill = JSObject();
     prefill.setProperty('contact'.toJS, contact.toJS);

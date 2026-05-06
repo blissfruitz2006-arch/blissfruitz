@@ -22,6 +22,7 @@ class _StickerGeneratorScreenState extends ConsumerState<StickerGeneratorScreen>
   Product? _selectedProduct;
   List<Product> _products = [];
   bool _isLoading = true;
+  String? _errorMessage;
   
   // Sticker Settings
   Map<String, dynamic>? _stickerSettings;
@@ -57,21 +58,34 @@ class _StickerGeneratorScreenState extends ConsumerState<StickerGeneratorScreen>
   }
 
   Future<void> _loadInitialData() async {
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
     try {
       final products = await AdminService.getAdminProducts();
-      final stickerSettings = await AdminService.getSettings('settings_package_sticker');
-      final generalSettings = await AdminService.getSettings('settings_general');
       
       setState(() {
         _products = products;
-        _stickerSettings = stickerSettings;
-        _generalSettings = generalSettings;
+        _stickerSettings = {
+          'sticker_width_mm': 76.2,
+          'sticker_height_mm': 50.8,
+          'font_size': 7.0,
+          'company_name': 'BlissFruitz',
+          'fssai_license': '1234567890',
+          'show_barcode': true,
+        };
+        _generalSettings = {
+          'site_name': 'BlissFruitz',
+        };
         _isLoading = false;
       });
     } catch (e) {
       debugPrint('Error loading sticker generator data: $e');
-      setState(() => _isLoading = false);
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
     }
   }
 
@@ -280,281 +294,263 @@ class _StickerGeneratorScreenState extends ConsumerState<StickerGeneratorScreen>
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('Building StickerGeneratorScreen. isLoading: $_isLoading, hasError: ${_errorMessage != null}');
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: isDark ? AppTheme.darkSurface : AppTheme.surfaceContainerLowest,
-      appBar: AppBar(
-        title: Text('Package Sticker Generator', style: GoogleFonts.outfit(fontWeight: FontWeight.w800)),
-        centerTitle: false,
-      ),
-      body: _isLoading 
-        ? const Center(child: CircularProgressIndicator())
-        : SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SectionHeader(
-                  title: 'Sticker Details',
-                  subtitle: 'Select a product and configure unit-specific details',
-                  trailing: ElevatedButton.icon(
-                    onPressed: _generateSticker,
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage != null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const SizedBox(height: 16),
+            Text('Error: $_errorMessage', style: GoogleFonts.beVietnamPro()),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: _loadInitialData,
+              child: const Text('Retry'),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1400),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SectionHeader(
+                title: 'Package Sticker Generator',
+                subtitle: 'Configure details for unit-specific labels',
+                trailing: SizedBox(
+                  width: 220,
+                  child: ElevatedButton.icon(
+                    onPressed: _selectedProduct == null ? null : _generateSticker,
                     icon: const Icon(Icons.print_rounded),
                     label: const Text('Generate & Print'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Configuration Form
-                    Expanded(
-                      flex: 3,
-                      child: AdminGlassCard(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildLabel('SELECT PRODUCT'),
-                            Autocomplete<Product>(
-                              displayStringForOption: (Product product) => product.name,
-                              initialValue: TextEditingValue(text: _selectedProduct?.name ?? ''),
-                              optionsBuilder: (TextEditingValue textEditingValue) {
-                                if (textEditingValue.text == '') {
-                                  return _products;
-                                }
-                                return _products.where((Product product) {
-                                  return product.name.toLowerCase()
-                                      .contains(textEditingValue.text.toLowerCase());
-                                });
-                              },
-                              onSelected: (Product selection) {
-                                _onProductSelected(selection);
-                              },
-                              fieldViewBuilder: (context, controller, focusNode, onFieldSubmitted) {
-                                return TextFormField(
-                                  controller: controller,
-                                  focusNode: focusNode,
-                                  decoration: InputDecoration(
-                                    fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                    hintText: 'Type to search product...',
-                                    suffixIcon: const Icon(Icons.search_rounded),
-                                  ),
-                                );
-                              },
-                              optionsViewBuilder: (context, onSelected, options) {
-                                return Align(
-                                  alignment: Alignment.topLeft,
-                                  child: Material(
-                                    elevation: 8,
-                                    borderRadius: BorderRadius.circular(16),
-                                    clipBehavior: Clip.antiAlias,
-                                    child: Container(
-                                      width: 400, // Fixed width for the options menu
-                                      constraints: const BoxConstraints(maxHeight: 300),
-                                      color: isDark ? AppTheme.darkSurface : Colors.white,
-                                      child: ListView.builder(
-                                        padding: EdgeInsets.zero,
-                                        shrinkWrap: true,
-                                        itemCount: options.length,
-                                        itemBuilder: (BuildContext context, int index) {
-                                          final Product option = options.elementAt(index);
-                                          return ListTile(
-                                            title: Text(option.name, style: GoogleFonts.beVietnamPro(fontSize: 14)),
-                                            subtitle: Text('SKU: ${option.sku ?? 'N/A'}', style: const TextStyle(fontSize: 11)),
-                                            onTap: () => onSelected(option),
-                                            hoverColor: AppTheme.primary.withValues(alpha: 0.1),
-                                          );
-                                        },
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('BATCH NO'),
-                                      TextFormField(
-                                        controller: _batchController,
-                                        onChanged: (_) => setState(() {}),
-                                        decoration: InputDecoration(
-                                          fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                          hintText: 'e.g. B2024-01',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('PKD DATE'),
-                                      InkWell(
-                                        onTap: () async {
-                                          final date = await showDatePicker(
-                                            context: context,
-                                            initialDate: _pkdDate,
-                                            firstDate: DateTime(2020),
-                                            lastDate: DateTime.now(),
-                                          );
-                                          if (date != null) setState(() => _pkdDate = date);
-                                        },
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                            borderRadius: BorderRadius.circular(16),
-                                            border: Border.all(color: isDark ? Colors.white10 : AppTheme.outlineVariant),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(Icons.calendar_today_rounded, size: 18),
-                                              const SizedBox(width: 12),
-                                              Text(DateFormat('dd MMM yyyy').format(_pkdDate)),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('NET QUANTITY'),
-                                      TextFormField(
-                                        controller: _quantityController,
-                                        onChanged: (_) => setState(() {}),
-                                        decoration: InputDecoration(
-                                          fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                          hintText: 'e.g. 1 kg',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('MRP (RS)'),
-                                      TextFormField(
-                                        controller: _mrpController,
-                                        onChanged: (_) => setState(() {}),
-                                        keyboardType: TextInputType.number,
-                                        decoration: InputDecoration(
-                                          fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                          hintText: '0.00',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      _buildLabel('SELL PRICE (RS)'),
-                                      TextFormField(
-                                        controller: _sellPriceController,
-                                        onChanged: (_) => setState(() {}),
-                                        keyboardType: TextInputType.number,
-                                        decoration: InputDecoration(
-                                          fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                          hintText: '0.00',
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                const Spacer(),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            
-                            _buildLabel('INGREDIENTS / NOTES'),
-                            TextFormField(
-                              controller: _ingredientsController,
-                              maxLines: 3,
-                              onChanged: (_) => setState(() {}),
-                              decoration: InputDecoration(
-                                fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
-                                hintText: 'List of ingredients or additional notes...',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 32),
-                    
-                    // Live Preview
-                    Expanded(
-                      flex: 2,
+              ),
+              const SizedBox(height: 32),
+              
+              // Main Content Row
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Left Side: Form
+                  Expanded(
+                    flex: 3,
+                    child: AdminGlassCard(
+                      padding: const EdgeInsets.all(32),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          _buildLabel('STIKER PREVIEW'),
-                          const SizedBox(height: 8),
-                          AdminGlassCard(
-                            padding: const EdgeInsets.all(24),
-                            child: _buildStickerPreview(),
+                          _buildLabel('SELECT PRODUCT'),
+                          DropdownButtonFormField<Product>(
+                            isExpanded: true,
+                            initialValue: _selectedProduct,
+                            items: _products.map((p) => DropdownMenuItem(
+                              value: p,
+                              child: Text(p.name, style: GoogleFonts.beVietnamPro(fontSize: 14)),
+                            )).toList(),
+                            onChanged: _onProductSelected,
+                            decoration: InputDecoration(
+                              fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            ),
                           ),
                           const SizedBox(height: 24),
-                          AdminGlassCard(
-                            padding: const EdgeInsets.all(16),
-                            child: Column(
-                              children: [
-                                _buildInfoRow('Width', '${_stickerSettings?['sticker_width_mm'] ?? 50}mm'),
-                                _buildInfoRow('Height', '${_stickerSettings?['sticker_height_mm'] ?? 25}mm'),
-                                _buildInfoRow('Font Size', '${_stickerSettings?['font_size'] ?? 6}pt'),
-                                const Divider(),
-                                Text(
-                                  'Change these in Sticker Settings',
-                                  style: GoogleFonts.outfit(fontSize: 10, color: AppTheme.primary),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('BATCH NO'),
+                                    TextFormField(
+                                      controller: _batchController,
+                                      onChanged: (_) => setState(() {}),
+                                      decoration: InputDecoration(
+                                        fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                                        hintText: 'e.g. B2024-01',
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('PKD DATE'),
+                                    InkWell(
+                                      onTap: () async {
+                                        final date = await showDatePicker(
+                                          context: context,
+                                          initialDate: _pkdDate,
+                                          firstDate: DateTime(2020),
+                                          lastDate: DateTime.now(),
+                                        );
+                                        if (date != null) setState(() => _pkdDate = date);
+                                      },
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(color: isDark ? Colors.white10 : AppTheme.outlineVariant),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            const Icon(Icons.calendar_today_rounded, size: 18),
+                                            const SizedBox(width: 12),
+                                            Text(DateFormat('dd MMM yyyy').format(_pkdDate)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('NET QUANTITY'),
+                                    TextFormField(
+                                      controller: _quantityController,
+                                      onChanged: (_) => setState(() {}),
+                                      decoration: InputDecoration(
+                                        fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                                        hintText: 'e.g. 1 kg',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('MRP (RS)'),
+                                    TextFormField(
+                                      controller: _mrpController,
+                                      onChanged: (_) => setState(() {}),
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                                        hintText: '0.00',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildLabel('SELL PRICE (RS)'),
+                                    TextFormField(
+                                      controller: _sellPriceController,
+                                      onChanged: (_) => setState(() {}),
+                                      keyboardType: TextInputType.number,
+                                      decoration: InputDecoration(
+                                        fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                                        hintText: '0.00',
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              const Spacer(),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                          
+                          _buildLabel('INGREDIENTS / NOTES'),
+                          TextFormField(
+                            controller: _ingredientsController,
+                            maxLines: 3,
+                            onChanged: (_) => setState(() {}),
+                            decoration: InputDecoration(
+                              fillColor: isDark ? Colors.black26 : AppTheme.surfaceContainerLow,
+                              hintText: 'List of ingredients or additional notes...',
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ],
-            ),
+                  ),
+                  const SizedBox(width: 32),
+                  
+                  // Right Side: Live Preview
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildLabel('STICKER PREVIEW'),
+                        const SizedBox(height: 8),
+                        AdminGlassCard(
+                          padding: const EdgeInsets.all(24),
+                          child: _buildStickerPreview(),
+                        ),
+                        const SizedBox(height: 24),
+                        AdminGlassCard(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            children: [
+                              _buildInfoRow('Width', '${_stickerSettings?['sticker_width_mm'] ?? 76}mm'),
+                              _buildInfoRow('Height', '${_stickerSettings?['sticker_height_mm'] ?? 50}mm'),
+                              _buildInfoRow('Font Size', '${_stickerSettings?['font_size'] ?? 7}pt'),
+                              const Divider(),
+                              Text(
+                                'Using Standard Package Dimensions',
+                                style: GoogleFonts.outfit(fontSize: 10, color: AppTheme.primary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
@@ -768,3 +764,4 @@ class _StickerGeneratorScreenState extends ConsumerState<StickerGeneratorScreen>
     );
   }
 }
+

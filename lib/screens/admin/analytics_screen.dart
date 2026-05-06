@@ -44,7 +44,11 @@ class AnalyticsScreen extends ConsumerWidget {
   Widget _buildHeader(BuildContext context, dynamic stats) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final double width = constraints.maxWidth;
+        // Defensive check for infinite width
+        final double width = constraints.maxWidth.isFinite 
+            ? constraints.maxWidth 
+            : MediaQuery.of(context).size.width - (MediaQuery.of(context).size.width >= 1100 ? 280 : 0);
+            
         final int crossAxisCount = width > 1200 ? 4 : (width > 600 ? 2 : 1);
         
         return GridView.count(
@@ -314,3 +318,4 @@ class _RevenueChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
+

@@ -8,24 +8,48 @@ import '../../models/rider.dart';
 import '../../providers/delivery_provider.dart';
 
 class NavigationScreen extends ConsumerStatefulWidget {
-  final DeliveryAssignment assignment;
-  const NavigationScreen({super.key, required this.assignment});
+  final String? orderId;
+  final DeliveryAssignment? assignment;
+  const NavigationScreen({super.key, this.orderId, this.assignment});
   @override
   ConsumerState<NavigationScreen> createState() => _NavigationScreenState();
 }
 
 class _NavigationScreenState extends ConsumerState<NavigationScreen> {
-  late DeliveryAssignment _assignment;
+  DeliveryAssignment? _assignment;
+  bool _isLoading = true;
   bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
-    _assignment = widget.assignment;
+    if (widget.assignment != null) {
+      _assignment = widget.assignment;
+      _isLoading = false;
+    } else if (widget.orderId != null) {
+      _loadAssignment();
+    } else {
+      _isLoading = false;
+    }
+  }
+
+  Future<void> _loadAssignment() async {
+    setState(() => _isLoading = true);
+    try {
+      final assignments = await ref.read(myAssignmentsProvider.future);
+      final found = assignments.where((a) => a.orderId.toString() == widget.orderId).firstOrNull;
+      setState(() {
+        _assignment = found;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _openInMaps() async {
-    final order = _assignment.order;
+    if (_assignment == null) return;
+    final order = _assignment!.order;
     final lat = order?.latitude;
     final lng = order?.longitude;
     final addr = order?.shippingAddress ?? '';
@@ -43,10 +67,10 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
   }
 
   Future<void> _cycleStatus() async {
-    if (_isUpdating) return;
+    if (_isUpdating || _assignment == null) return;
 
     DeliveryStatus? next;
-    switch (_assignment.status) {
+    switch (_assignment!.status) {
       case DeliveryStatus.assigned:
         next = DeliveryStatus.pickedUp;
         break;
@@ -63,11 +87,15 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     setState(() => _isUpdating = true);
     try {
       final service = ref.read(deliveryServiceProvider);
-      await service.updateDeliveryStatus(_assignment.id, next);
-      setState(() => _assignment = _assignment.copyWith(status: next));
+      final id = _assignment?.id;
+      if (id == null) return;
+      await service.updateDeliveryStatus(id, next);
+      if (mounted) {
+        setState(() => _assignment = _assignment?.copyWith(status: next));
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Status → ${_assignment.statusLabel}'),
+          content: Text('Status → ${_assignment!.statusLabel}'),
           backgroundColor: const Color(0xFF059669),
         ));
         if (next == DeliveryStatus.delivered) {
@@ -83,9 +111,20 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
+    if (_assignment == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Order Not Found')),
+        body: const Center(child: Text('Could not load order details.')),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final order = _assignment.order;
+    final order = _assignment!.order;
 
     final addr = [
       order?.shippingAddress,
@@ -99,7 +138,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     Color statusFg;
     String nextLabel;
     IconData nextIcon;
-    switch (_assignment.status) {
+    switch (_assignment!.status) {
       case DeliveryStatus.assigned:
         statusBg = const Color(0xFF3B82F6);
         statusFg = Colors.white;
@@ -156,7 +195,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                     Icon(nextIcon, color: statusBg, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      _assignment.statusLabel,
+                      _assignment!.statusLabel,
                       style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: statusBg),
                     ),
                   ],
@@ -167,7 +206,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
 
               // Order ID
               Text(
-                'Order #${_assignment.orderId}',
+                'Order #${_assignment!.orderId}',
                 style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurfaceVariant),
               ),
 
@@ -208,7 +247,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
                     if (order?.shippingName != null) ...[
                       const SizedBox(height: 10),
                       Text(
-                        order!.shippingName!,
+                        order?.shippingName ?? '',
                         style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                       ),
                     ],
@@ -241,7 +280,7 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
         ),
       ),
       // FAB for cycling status
-      floatingActionButton: (_assignment.status != DeliveryStatus.delivered && _assignment.status != DeliveryStatus.failed)
+      floatingActionButton: (_assignment!.status != DeliveryStatus.delivered && _assignment!.status != DeliveryStatus.failed)
           ? FloatingActionButton.extended(
               onPressed: _isUpdating ? null : _cycleStatus,
               backgroundColor: statusBg,
@@ -255,3 +294,4 @@ class _NavigationScreenState extends ConsumerState<NavigationScreen> {
     );
   }
 }
+

@@ -124,3 +124,4 @@ class FAQScreen extends StatelessWidget {
     );
   }
 }
+

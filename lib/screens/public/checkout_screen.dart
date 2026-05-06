@@ -1,23 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/cart_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../config/theme.dart';
-import '../../widgets/app_image.dart';
-import '../../services/order_service.dart';
+import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
-import '../../models/address.dart';
+import '../../providers/settings_provider.dart';
 import '../../services/address_service.dart';
-import '../../widgets/address_form_modal.dart';
-import 'package:razorpay_flutter/razorpay_flutter.dart';
-import '../../services/settings_service.dart';
-import '../../services/coupon_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import '../../services/razorpay_checkout.dart' as rzp;
-import '../../models/settings.dart';
-import '../../services/logger_service.dart';
+import '../../services/order_service.dart';
+import '../../services/razorpay_checkout.dart' as razorpay;
+import '../../models/address.dart';
+import '../../models/cart.dart';
+import '../../models/user_profile.dart';
 
+import '../../widgets/address_form_modal.dart';
+import '../../services/coupon_service.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -27,983 +24,1049 @@ class CheckoutScreen extends ConsumerStatefulWidget {
 }
 
 class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
-  int _currentStep = 1; // 0=Cart, 1=Details, 2=Confirm
-  Address? _selectedAddress;
-  String? _guestEmail;
-  String _selectedPayment = 'cod';
-  bool _loading = false;
-  bool _fetchingAddresses = true;
+  int _currentStep = 0;
+  bool _isProcessing = false;
   List<Address> _savedAddresses = [];
-  int? _pendingOrderId;
-  
-  // Settings
+  bool _isLoadingAddresses = true;
+  final _formKey = GlobalKey<FormState>();
 
-  PaymentSettings _paymentSettings = PaymentSettings();
-  ShippingSettings _shippingSettings = const ShippingSettings();
+  // Form controllers
+  final _nameController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _cityController = TextEditingController();
+  final _stateController = TextEditingController();
+  final _pincodeController = TextEditingController();
+  final _notesController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _couponController = TextEditingController();
 
-  Razorpay? _razorpay;
-  final TextEditingController _couponController = TextEditingController();
-  bool _validatingCoupon = false;
-  String? _couponError;
-
+  String _paymentMethod = 'razorpay'; // 'razorpay' or 'cod'
+  bool _isValidatingCoupon = false;
+  double? _latitude;
+  double? _longitude;
 
   @override
   void initState() {
     super.initState();
-    _loadAddresses();
-    if (!kIsWeb) {
-      _razorpay = Razorpay();
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-      _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-      _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
+    _loadUserProfile();
+    // Fetch addresses immediately if profile is already available
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (ref.read(userProfileProvider).valueOrNull != null) {
+        _fetchSavedAddresses();
+      }
+    });
+  }
+
+  Future<void> _fetchSavedAddresses() async {
+    final profile = ref.read(userProfileProvider).valueOrNull;
+    if (profile == null) {
+      setState(() => _isLoadingAddresses = false);
+      return;
     }
-    _loadInitialData();
-  }
 
-  Future<void> _loadInitialData() async {
-    await Future.wait([
-      _loadAddresses(),
-      _loadSettings(),
-    ]);
-  }
-
-  Future<void> _loadSettings() async {
+    debugPrint('📫 Fetching addresses for user ${profile.supabaseId}...');
     try {
-      final payment = await SettingsService.getPaymentSettings();
-      final shipping = await SettingsService.getShippingSettings();
-      setState(() {
-        _paymentSettings = payment;
-        _shippingSettings = shipping;
-
-        _selectedPayment = payment.codEnabled ? 'cod' : 'card';
-      });
-      
-      // Update cart shipping if already in cart
-      _updateCartShipping();
-    } catch (e) {
-      LoggerService.logError('CheckoutScreen._loadSettings error: $e');
-    }
-  }
-
-  void _updateCartShipping() {
-    final cart = ref.read(cartProvider);
-    final shipping = _shippingSettings.calculateShipping(cart.subtotal);
-    ref.read(cartProvider.notifier).updateShipping(shipping);
-  }
-
-  @override
-  void dispose() {
-    _razorpay?.clear();
-    _couponController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _loadAddresses() async {
-    final user = ref.read(userProfileProvider).valueOrNull;
-    if (user != null) {
-      try {
-        final addresses = await AddressService.getUserAddresses(user.id);
+      if (profile.supabaseId != null) {
+        final addresses = await AddressService.getUserAddresses(profile.supabaseId!);
+        debugPrint('✅ Found ${addresses.length} saved addresses.');
+      if (mounted) {
         setState(() {
           _savedAddresses = addresses;
-          _selectedAddress = addresses.isNotEmpty 
-            ? (addresses.any((a) => a.isDefault) 
-                ? addresses.firstWhere((a) => a.isDefault) 
-                : addresses.first)
-            : null;
-          _fetchingAddresses = false;
+          _isLoadingAddresses = false;
         });
-      } catch (e) {
-        setState(() => _fetchingAddresses = false);
       }
-    } else {
-      setState(() => _fetchingAddresses = false);
+      
+      // If there's a default address, auto-fill it
+      final defaultAddr = addresses.where((a) => a.isDefault).firstOrNull ?? addresses.firstOrNull;
+      if (defaultAddr != null) {
+        _fillAddress(defaultAddr);
+      }
+      }
+    } catch (e) {
+      debugPrint('Error fetching addresses: $e');
+      if (mounted) setState(() => _isLoadingAddresses = false);
     }
   }
 
-  void _showAddAddressModal() {
+  void _fillAddress(Address addr) {
+    setState(() {
+      _nameController.text = addr.fullName;
+      _phoneController.text = addr.phone;
+      _addressController.text = addr.line1;
+      _cityController.text = addr.city;
+      _stateController.text = addr.state;
+      _pincodeController.text = addr.pincode;
+      _latitude = addr.latitude;
+      _longitude = addr.longitude;
+    });
+  }
+
+  void _showAddressForm([Address? address]) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => AddressFormModal(
-        onSave: (address, email) {
-          if (ref.read(userProfileProvider).valueOrNull == null) {
-            setState(() {
-              _selectedAddress = address;
-              _guestEmail = email;
-              _savedAddresses = [address]; // Show it in list
-            });
-          } else {
-            _loadAddresses();
-          }
+        address: address,
+        onSave: (newAddr, email) {
+          _fetchSavedAddresses();
+          _fillAddress(newAddr);
           Navigator.pop(context);
         },
       ),
     );
   }
 
-  void _handlePaymentSuccess(PaymentSuccessResponse response) async {
-    final orderId = _pendingOrderId;
-    if (orderId != null) {
-      await OrderService.updatePaymentStatus(
-        orderId: orderId,
-        paymentStatus: 'paid',
-        orderStatus: 'confirmed', // Or 'placed', let's use 'confirmed' as per Order model switch
-        razorpayPaymentId: response.paymentId,
-        razorpayOrderId: response.orderId,
-      );
-      
-      _pendingOrderId = null;
-      ref.read(cartProvider.notifier).clearCart();
-
-      if (mounted) {
-        setState(() => _loading = false);
-        context.go('/order-success?orderId=$orderId');
-      }
+  void _loadUserProfile() {
+    final profile = ref.read(userProfileProvider).valueOrNull;
+    if (profile != null) {
+      _nameController.text = profile.fullName ?? '';
+      _phoneController.text = profile.phone ?? '';
+      _emailController.text = profile.email ?? '';
+      _addressController.text = profile.address ?? '';
     }
   }
 
-  void _handlePaymentError(PaymentFailureResponse response) async {
-    final orderId = _pendingOrderId;
-    LoggerService.logInfo('Payment failed for order: $orderId. Error: ${response.message}');
-    
-    if (orderId != null) {
-      try {
-        await OrderService.updatePaymentStatus(
-          orderId: orderId,
-          paymentStatus: 'failed',
-          orderStatus: 'failed',
-        );
-        LoggerService.logInfo('Successfully updated order $orderId status to failed');
-      } catch (e) {
-        LoggerService.logError('Error updating failed payment status for order $orderId: $e');
-      }
-    } else {
-      LoggerService.logWarning('Payment failed but _pendingOrderId was null. Status not updated.');
-    }
-    
-    if (mounted) {
-      setState(() => _loading = false);
-      context.push('/order-failed?error=${Uri.encodeComponent(response.message ?? "Payment cancelled")}');
-    }
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _addressController.dispose();
+    _cityController.dispose();
+    _stateController.dispose();
+    _pincodeController.dispose();
+    _notesController.dispose();
+    _emailController.dispose();
+    _couponController.dispose();
+    super.dispose();
   }
 
-  void _handleExternalWallet(ExternalWalletResponse response) {
-    // Handle external wallet if needed
-  }
+  Future<void> _processOrder() async {
+    if (_isProcessing) return;
 
-  Future<void> _applyCoupon() async {
-    final code = _couponController.text.trim();
-    if (code.isEmpty) return;
-
-    setState(() {
-      _validatingCoupon = true;
-      _couponError = null;
-    });
-
-    try {
-      final profile = ref.read(userProfileProvider).valueOrNull;
-      final coupon = await CouponService.validateCoupon(
-        code, 
-        userId: profile?.id,
-        guestEmail: profile?.email ?? _guestEmail,
-        phone: _selectedAddress?.phone,
-      );
-      
-      if (coupon == null) {
-        setState(() {
-          _validatingCoupon = false;
-          _couponError = 'Invalid or expired coupon code';
-        });
-        return;
-      }
-
-      int orderCount = 0;
-      if (profile != null) {
-        orderCount = await OrderService.getUserOrderCount(profile.id);
-      }
-
-      final ineligibilityReason = coupon.getIneligibilityReason(profile, orderCount);
-      if (ineligibilityReason != null) {
-        setState(() {
-          _validatingCoupon = false;
-          _couponError = ineligibilityReason;
-        });
-        return;
-      }
-
-      final cart = ref.read(cartProvider);
-      
-      if (coupon.minOrder != null && cart.subtotal < coupon.minOrder!) {
-        setState(() {
-          _validatingCoupon = false;
-          _couponError = 'Minimum order amount ₹${coupon.minOrder!.toStringAsFixed(0)} required';
-        });
-        return;
-      }
-
-      // Use the model's calculation logic for consistency
-      final discount = coupon.calculateDiscount(cart.subtotal);
-      
-      if (discount <= 0) {
-        setState(() {
-          _validatingCoupon = false;
-          _couponError = 'Coupon provides no discount for this order';
-        });
-        return;
-      }
-
-      ref.read(cartProvider.notifier).applyCoupon(coupon.code, discount);
-
-      setState(() {
-        _validatingCoupon = false;
-        _couponController.clear();
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Coupon "${coupon.code}" applied successfully!'),
-            backgroundColor: AppTheme.primary,
-          ),
-        );
-      }
-    } catch (e) {
-      setState(() {
-        _validatingCoupon = false;
-        _couponError = e.toString().contains('already used') 
-            ? 'You have already used this coupon code' 
-            : 'Error validating coupon';
-      });
-    }
-  }
-
-  void _removeCoupon() {
-    ref.read(cartProvider.notifier).removeCoupon();
-  }
-
-  Future<void> _placeOrder() async {
-    if (_selectedAddress == null) {
+    final cart = ref.read(cartProvider);
+    if (cart.items.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select or add a shipping address')),
+        const SnackBar(content: Text('Your cart is empty')),
       );
       return;
     }
 
-    final cart = ref.read(cartProvider);
-    final user = ref.read(userProfileProvider).valueOrNull;
-
-    if (cart.items.isEmpty) return;
-
-    setState(() => _loading = true);
+    setState(() => _isProcessing = true);
 
     try {
-      final subtotal = cart.subtotal;
-      final discount = cart.discountAmount;
-      final shipping = _shippingSettings.calculateShipping(subtotal);
-      final total = subtotal - discount + shipping;
+      final user = ref.read(userProfileProvider).valueOrNull;
 
-      // 1. Create the order in "pending" state first
-      final order = await OrderService.createOrder(
-        userId: user?.id,
-        guestEmail: user == null ? (_guestEmail ?? 'guest@example.com') : null,
-        shippingName: _selectedAddress!.fullName,
-        shippingPhone: _selectedAddress!.phone,
-        shippingAddress: _selectedAddress!.line1,
-        shippingCity: _selectedAddress!.city,
-        shippingState: _selectedAddress!.state,
-        shippingPincode: _selectedAddress!.pincode,
-        subtotal: subtotal,
-        shippingAmount: shipping,
-        discountAmount: discount,
-        total: total,
-        couponCode: cart.couponCode,
-        paymentMethod: _selectedPayment,
-        items: cart.items,
-        latitude: _selectedAddress!.latitude,
-        longitude: _selectedAddress!.longitude,
-      );
+      if (_paymentMethod == 'razorpay') {
+        // Step 1: Create order in pending state
+        final order = await OrderService.createOrder(
+          userId: user?.supabaseId,
+          guestEmail: _emailController.text,
+          shippingName: _nameController.text,
+          shippingPhone: _phoneController.text,
+          shippingAddress: _addressController.text,
+          shippingCity: _cityController.text,
+          shippingState: _stateController.text,
+          shippingPincode: _pincodeController.text,
+          notes: _notesController.text,
+          subtotal: cart.subtotal,
+          shippingAmount: cart.shippingAmount,
+          discountAmount: cart.discountAmount,
+          total: cart.total,
+          couponCode: cart.couponCode,
+          paymentMethod: 'online',
+          items: cart.items,
+          latitude: _latitude,
+          longitude: _longitude,
+        );
 
-      _pendingOrderId = order.id;
+        if (!mounted) return;
 
-      // 2. Handle payment based on method
-      if (_selectedPayment == 'cod') {
-        // COD - Update status and clear cart
-        try {
-          await OrderService.updatePaymentStatus(
-            orderId: order.id!,
-            paymentStatus: 'pending',
-            orderStatus: 'confirmed',
+        // Step 2: Open Razorpay
+        final paymentSettingsAsync = ref.read(paymentSettingsProvider);
+        final paymentSettings = paymentSettingsAsync.valueOrNull;
+        final rzpKey = paymentSettings?.razorpayKeyId;
+        
+        if (rzpKey == null || rzpKey.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Razorpay is not configured by the administrator.')),
           );
-        } catch (e) {
-          LoggerService.logError('Error updating COD status: $e');
+          setState(() => _isProcessing = false);
+          return;
         }
+
+        // Step 2: Create Razorpay Order securely via Edge Function
+        final rzpOrderId = await OrderService.createRazorpayOrder(
+          amountInPaise: (cart.total * 100).toInt(),
+          receipt: order.orderNumber ?? 'receipt_${order.id}',
+        );
+
+        if (!mounted) return;
+
+        if (rzpOrderId == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to initialize payment gateway. Please try again.')),
+          );
+          setState(() => _isProcessing = false);
+          return;
+        }
+
+        debugPrint('💳 Opening Razorpay with key: $rzpKey, orderId: $rzpOrderId');
+        
+        razorpay.openRazorpayCheckout(
+          key: rzpKey,
+          amount: (cart.total * 100).toInt(),
+          orderId: rzpOrderId,
+          name: 'BlissFruitz',
+          description: 'Order #${order.orderNumber}',
+          contact: _phoneController.text,
+          email: user?.email ?? 'guest@blissfruitz.com',
+          onSuccess: (paymentId, orderId, signature) async {
+            // Securely verify signature on the server
+            final isValid = await OrderService.verifyPaymentSignature(
+              orderId: order.id!,
+              razorpayPaymentId: paymentId,
+              razorpayOrderId: orderId,
+              razorpaySignature: signature,
+            );
+
+            if (isValid) {
+              ref.read(cartProvider.notifier).clearCart();
+              if (mounted) context.go('/order-success?orderId=${order.id}');
+            } else {
+              // Signature verification failed, mark as failed
+              await OrderService.updatePaymentStatus(
+                orderId: order.id!,
+                paymentStatus: 'failed',
+                orderStatus: 'failed',
+              );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Payment verification failed. Please contact support.')),
+                );
+                setState(() => _isProcessing = false);
+              }
+            }
+          },
+          onFailure: (code, message) async {
+            debugPrint('Payment Failed: $code - $message');
+            
+            // Mark order as failed in database
+            await OrderService.updatePaymentStatus(
+              orderId: order.id!,
+              paymentStatus: 'failed',
+              orderStatus: 'failed',
+            );
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Payment failed: $message')),
+              );
+              setState(() => _isProcessing = false);
+            }
+          },
+        );
+      } else {
+        // Cash on Delivery
+        final order = await OrderService.createOrder(
+          userId: user?.supabaseId,
+          guestEmail: _emailController.text,
+          shippingName: _nameController.text,
+          shippingPhone: _phoneController.text,
+          shippingAddress: _addressController.text,
+          shippingCity: _cityController.text,
+          shippingState: _stateController.text,
+          shippingPincode: _pincodeController.text,
+          notes: _notesController.text,
+          subtotal: cart.subtotal,
+          shippingAmount: cart.shippingAmount,
+          discountAmount: cart.discountAmount,
+          total: cart.total,
+          couponCode: cart.couponCode,
+          paymentMethod: 'cod',
+          items: cart.items,
+          latitude: _latitude,
+          longitude: _longitude,
+        );
 
         ref.read(cartProvider.notifier).clearCart();
-        if (mounted) {
-          context.go('/order-success?orderId=${order.id}');
-        }
-      } else {
-        // Online payment - Trigger Razorpay
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Securely connecting to payment gateway...'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-
-        if (!_paymentSettings.razorpayEnabled || _paymentSettings.razorpayKeyId == null || _paymentSettings.razorpayKeyId!.isEmpty) {
-          throw Exception('Online payments are currently unavailable. Please use COD.');
-        }
-
-        final options = {
-          'key': _paymentSettings.razorpayKeyId,
-          'amount': (total * 100).toInt(),
-          'currency': _paymentSettings.currency,
-          'name': 'BlissFruitz',
-          'description': 'Order #${order.orderNumber}',
-          'retry': {'enabled': true, 'max_count': 1},
-          'send_sms_hash': true,
-          'prefill': {
-            'contact': _selectedAddress!.phone,
-            'email': user?.email ?? 'customer@example.com'
-          },
-          'theme': {
-            'color': '#16a34a'
-          },
-          'external': {
-            'wallets': ['paytm']
-          }
-        };
-
-        try {
-          if (kIsWeb) {
-            rzp.openRazorpayCheckout(
-              key: _paymentSettings.razorpayKeyId!,
-              amount: (total * 100).toInt(),
-              currency: _paymentSettings.currency,
-              name: 'BlissFruitz',
-              description: 'Order #${order.orderNumber}',
-              contact: _selectedAddress!.phone,
-              email: user?.email ?? 'customer@example.com',
-              onSuccess: (paymentId, rOrderId, signature) {
-                _handlePaymentSuccess(PaymentSuccessResponse(paymentId, rOrderId, signature, {}));
-              },
-              onFailure: (code, message) {
-                _handlePaymentError(PaymentFailureResponse(code, message, {}));
-              },
-            );
-          } else {
-            // Re-initialize before opening to ensure fresh state
-            _razorpay?.clear();
-            _razorpay = Razorpay();
-            _razorpay!.on(Razorpay.EVENT_PAYMENT_SUCCESS, _handlePaymentSuccess);
-            _razorpay!.on(Razorpay.EVENT_PAYMENT_ERROR, _handlePaymentError);
-            _razorpay!.on(Razorpay.EVENT_EXTERNAL_WALLET, _handleExternalWallet);
-            
-            _razorpay!.open(options);
-          }
-          
-          // Fail-safe: if no event is received within 60 seconds, reset loading
-          Future.delayed(const Duration(seconds: 60), () {
-            if (mounted && _loading) {
-              setState(() => _loading = false);
-            }
-          });
-        } catch (e) {
-          debugPrint('Error opening Razorpay: $e');
-          throw Exception('Could not open payment gateway: $e');
-        }
+        if (mounted) context.go('/order-success?orderId=${order.id}');
       }
     } catch (e) {
-      LoggerService.logError('Exception during _placeOrder: $e');
-      final orderId = _pendingOrderId;
-      if (orderId != null) {
-        try {
-          // If we have an order ID but hit an error (e.g. before Razorpay opened),
-          // set it to failed to prevent "stuck" pending orders
-          await OrderService.updatePaymentStatus(
-            orderId: orderId,
-            paymentStatus: 'failed',
-            orderStatus: 'failed',
-          );
-          LoggerService.logInfo('Successfully updated order $orderId status to failed after exception');
-        } catch (updateErr) {
-          LoggerService.logError('Failed to mark order $orderId as failed: $updateErr');
-        }
-      }
-
+      debugPrint('Order placement error: $e');
       if (mounted) {
-        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to place order: $e'),
-            backgroundColor: AppTheme.error,
-            behavior: SnackBarBehavior.floating,
-          ),
+          SnackBar(content: Text('Error: $e')),
         );
+        setState(() => _isProcessing = false);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final cart = ref.watch(cartProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Listen for profile changes to load addresses (e.g., after login)
+    ref.listen<AsyncValue<UserProfile?>>(userProfileProvider, (previous, next) {
+      if (next is AsyncData && next.value != null) {
+        debugPrint('👤 Profile updated, fetching saved addresses...');
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _fetchSavedAddresses();
+        });
+      }
+    });
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (_currentStep > 0) {
-          setState(() => _currentStep--);
-        } else {
-          // Use pop if possible, otherwise go to cart
-          if (context.canPop()) {
-            context.pop();
-          } else {
-            context.go('/cart');
-          }
-        }
-      },
-      child: Title(
-        title: 'Checkout | BlissFruitz',
-        color: Colors.white,
-        child: Stack(
+    final cart = ref.watch(cartProvider);
+
+    if (cart.items.isEmpty && !_isProcessing) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.shopping_cart_outlined, size: 64, color: AppTheme.outline),
+              const SizedBox(height: 16),
+              Text(
+                'Your cart is empty',
+                style: GoogleFonts.outfit(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => context.go('/shop'),
+                child: const Text('Back to Shop'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Scaffold(
+      backgroundColor: AppTheme.surface,
+      appBar: AppBar(
+        title: Text(
+          'Checkout',
+          style: GoogleFonts.outfit(fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+          onPressed: () => context.pop(),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: AppTheme.onSurface,
+      ),
+      body: SafeArea(
+        child: Column(
           children: [
-            SafeArea(
-            child: Column(
-              children: [
-                // Header
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: () {
-                              if (_currentStep > 0) {
-                                setState(() => _currentStep--);
-                              } else {
-                                // Prefer pop if we have a stack, otherwise fallback to cart
-                                if (context.canPop()) {
-                                  context.pop();
-                                } else {
-                                  context.go('/cart');
-                                }
-                              }
-                            },
-                            child: Icon(Icons.arrow_back,
-                                color: Theme.of(context).colorScheme.onSurface),
-                          ),
-                          const SizedBox(width: 16),
-                          Text(
-                            'Checkout',
-                            style: GoogleFonts.outfit(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -1,
-                              color: Theme.of(context).colorScheme.onSurface,
-                            ),
-                          ),
-                        ],
+            // Step Indicator
+            _buildStepIndicator(),
+            
+            // Scrollable content
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800),
+                    child: Form(
+                      key: _formKey,
+                      child: AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: Builder(
+                          key: ValueKey(_currentStep),
+                          builder: (context) {
+                            if (_currentStep == 0) return _buildShippingStep(key: const ValueKey('shipping'));
+                            if (_currentStep == 1) return _buildPaymentStep(key: const ValueKey('payment'));
+                            if (_currentStep == 2) return _buildReviewStep(key: const ValueKey('review'));
+                            return const SizedBox.shrink();
+                          },
+                        ),
                       ),
-                      const SizedBox(height: 12),
-                      _buildStepIndicator(),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (_currentStep == 0) ...[
-                          _buildBasketSection(cart),
-                          const SizedBox(height: 24),
-                          _buildCouponSection(cart),
-                          const SizedBox(height: 24),
-                          _buildBillingSummary(cart),
-                        ] else if (_currentStep == 1) ...[
-                          _buildShippingSection(),
-                        ] else if (_currentStep == 2) ...[
-                          _buildPaymentSection(),
-                          const SizedBox(height: 24),
-                          _buildCouponSection(cart),
-                          const SizedBox(height: 24),
-                          _buildBillingSummary(cart),
-                        ],
-                        const SizedBox(height: 120),
-                      ],
                     ),
                   ),
+                ),
+              ),
+            ),
+            
+            // Bottom Actions
+            _buildBottomActions(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStepIndicator() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 40),
+      child: Row(
+        children: [
+          _StepIcon(index: 0, currentIndex: _currentStep, label: 'Shipping'),
+          _StepDivider(index: 0, currentIndex: _currentStep),
+          _StepIcon(index: 1, currentIndex: _currentStep, label: 'Payment'),
+          _StepDivider(index: 1, currentIndex: _currentStep),
+          _StepIcon(index: 2, currentIndex: _currentStep, label: 'Review'),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildShippingStep({Key? key}) {
+    if (_isLoadingAddresses) {
+      return Padding(
+        key: key,
+        padding: const EdgeInsets.all(40.0),
+        child: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    return Column(
+        key: key,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_savedAddresses.isNotEmpty) ...[
+            Row(
+              children: [
+                _SectionTitle(title: 'Saved Addresses', icon: Icons.bookmark_rounded),
+                const Spacer(),
+                TextButton.icon(
+                  onPressed: () => _showAddressForm(),
+                  icon: const Icon(Icons.add_location_alt_rounded, size: 18),
+                  label: const Text('Add New'),
                 ),
               ],
             ),
-          ),
-          // Floating bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: Container(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, MediaQuery.of(context).padding.bottom + 16),
-              decoration: BoxDecoration(
-                color: isDark ? AppTheme.surfaceContainerLowest : Colors.white,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                border: Border(
-                  top: BorderSide(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, -5),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          'Grand Total',
-                          style: GoogleFonts.beVietnamPro(
-                            fontSize: 12,
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          '₹${cart.total.toStringAsFixed(0)}',
-                          style: GoogleFonts.outfit(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: _loading ? null : () {
-                      if (_currentStep < 2) {
-                        setState(() => _currentStep++);
-                      } else {
-                        _placeOrder();
-                      }
-                    },
+          const SizedBox(height: 12),
+            SizedBox(
+              height: 140,
+              width: double.infinity,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                shrinkWrap: true,
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                itemCount: _savedAddresses.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 12),
+                itemBuilder: (context, index) {
+                  final addr = _savedAddresses[index];
+                  return InkWell(
+                    onTap: () => _fillAddress(addr),
+                    borderRadius: BorderRadius.circular(12),
                     child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 32, vertical: 18),
+                      width: 220,
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _loading ? Theme.of(context).colorScheme.surfaceContainerHigh : AppTheme.primary,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: _loading ? null : [
-                          BoxShadow(
-                            color: AppTheme.primary.withValues(alpha: 0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
+                        border: Border.all(color: AppTheme.outlineVariant),
+                        borderRadius: BorderRadius.circular(12),
+                        color: AppTheme.surfaceContainerLow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                addr.label?.toUpperCase() ?? 'HOME',
+                                style: GoogleFonts.outfit(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.primary,
+                                ),
+                              ),
+                              const Spacer(),
+                              if (addr.isDefault)
+                                const Icon(Icons.check_circle, size: 14, color: AppTheme.primary),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            addr.fullName,
+                            style: GoogleFonts.outfit(
+                              fontSize: 13, 
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.onSurface,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            addr.displayString,
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 11, 
+                              color: AppTheme.onSurfaceVariant,
+                              height: 1.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: _loading
-                          ? [
-                              const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: AppTheme.onPrimary,
-                                ),
-                              )
-                            ]
-                          : [
-                              Text(
-                                _currentStep < 2 ? 'Continue' : 'Place Order',
-                                style: GoogleFonts.outfit(
-                                  fontWeight: FontWeight.w800,
-                                  color: AppTheme.onPrimary,
-                                  fontSize: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 10),
-                              Icon(_currentStep < 2 ? Icons.arrow_forward_rounded : Icons.check_circle_rounded,
-                                  size: 20, color: AppTheme.onPrimary),
-                            ],
-                      ),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
+            const SizedBox(height: 24),
+          ] else ...[
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                onPressed: () => _showAddressForm(),
+                icon: const Icon(Icons.map_rounded, size: 18),
+                label: const Text('Select from Map'),
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          _SectionTitle(title: 'Delivery Information', icon: Icons.local_shipping_rounded),
+          const SizedBox(height: 20),
+          _CustomTextField(
+            controller: _nameController,
+            label: 'Full Name',
+            hint: 'Enter your full name',
+            validator: (v) => v!.isEmpty ? 'Required' : null,
           ),
-        ],
-      ),
-    ),
-  );
-}
-
-  Widget _buildStepIndicator() {
-    final steps = ['Cart', 'Details', 'Confirm'];
-    return Row(
-      children: List.generate(steps.length * 2 - 1, (index) {
-        if (index.isOdd) {
-          final stepIndex = index ~/ 2;
-          return Expanded(
-            child: Container(
-              height: 2,
-              color: stepIndex < _currentStep
-                  ? AppTheme.primary
-                  : Theme.of(context).colorScheme.surfaceContainerHigh,
-            ),
-          );
-        }
-        final stepIndex = index ~/ 2;
-        final isActive = stepIndex <= _currentStep;
-        return GestureDetector(
-          onTap: () => setState(() => _currentStep = stepIndex),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
+          const SizedBox(height: 16),
+          _CustomTextField(
+            controller: _phoneController,
+            label: 'Phone Number',
+            hint: '10-digit mobile number',
+            keyboardType: TextInputType.phone,
+            validator: (v) => v!.length != 10 ? 'Enter valid 10-digit number' : null,
+          ),
+          const SizedBox(height: 16),
+          _CustomTextField(
+            controller: _emailController,
+            label: 'Email Address',
+            hint: 'Enter your email for order updates',
+            keyboardType: TextInputType.emailAddress,
+            validator: (v) => !v!.contains('@') ? 'Enter a valid email' : null,
+          ),
+          const SizedBox(height: 16),
+          _CustomTextField(
+            controller: _addressController,
+            label: 'Full Address',
+            hint: 'House No, Street, Landmark',
+            maxLines: 3,
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+          ),
+          const SizedBox(height: 16),
+          Row(
             children: [
-              Container(
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  color: isActive ? AppTheme.primary : Theme.of(context).colorScheme.surfaceContainerHigh,
-                  shape: BoxShape.circle,
-                ),
-                child: Center(
-                  child: Text(
-                    '${stepIndex + 1}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isActive ? AppTheme.onPrimary : Theme.of(context).colorScheme.outline,
-                    ),
-                  ),
+              Expanded(
+                child: _CustomTextField(
+                  controller: _cityController,
+                  label: 'City',
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
               ),
-              const SizedBox(width: 6),
-              Text(
-                steps[stepIndex],
-                style: GoogleFonts.beVietnamPro(
-                  fontSize: 12,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                  color: isActive ? Theme.of(context).colorScheme.onSurface : Theme.of(context).colorScheme.outlineVariant,
+              const SizedBox(width: 16),
+              Expanded(
+                child: _CustomTextField(
+                  controller: _pincodeController,
+                  label: 'Pincode',
+                  keyboardType: TextInputType.number,
+                  validator: (v) => v!.length != 6 ? 'Required' : null,
                 ),
               ),
             ],
           ),
-        );
-      }),
+          const SizedBox(height: 16),
+          _CustomTextField(
+            controller: _stateController,
+            label: 'State',
+            validator: (v) => v!.isEmpty ? 'Required' : null,
+          ),
+          const SizedBox(height: 16),
+          _CustomTextField(
+            controller: _notesController,
+            label: 'Order Notes (Optional)',
+            hint: 'Special instructions for delivery',
+            maxLines: 2,
+          ),
+          const SizedBox(height: 24),
+          _buildCouponSection(),
+        ],
     );
   }
 
-  Widget _buildBasketSection(dynamic cart) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Basket Items',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
+  Widget _buildCouponSection() {
+    final cart = ref.watch(cartProvider);
+    final hasCoupon = cart.couponCode != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppTheme.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primary.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(title: 'Have a Coupon?', icon: Icons.confirmation_number_rounded, small: true),
+          const SizedBox(height: 12),
+          if (hasCoupon)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ),
-            Text(
-              '${cart.items.length} items',
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 13,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              child: Row(
+                children: [
+                  const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Coupon "${cart.couponCode}" applied!',
+                      style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 13),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => ref.read(cartProvider.notifier).removeCoupon(),
+                    child: const Text('Remove', style: TextStyle(color: Colors.red, fontSize: 12)),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        ...cart.items.map<Widget>((item) {
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
-            ),
-            child: Row(
+            )
+          else
+            Row(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: SizedBox(
-                    width: 56,
-                    height: 56,
-                    child: AppImage(
-                      path: item.product.imageMain,
-                      fit: BoxFit.cover,
+                Expanded(
+                  child: TextField(
+                    controller: _couponController,
+                    decoration: InputDecoration(
+                      hintText: 'Enter coupon code',
+                      hintStyle: const TextStyle(fontSize: 14),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.product.name,
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Text(
-                        '${item.quantity} × ₹${item.product.price.toStringAsFixed(0)}',
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 12,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
+                ElevatedButton(
+                  onPressed: _isValidatingCoupon ? null : _applyCoupon,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                ),
-                Text(
-                  '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
-                  style: GoogleFonts.outfit(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: AppTheme.primary,
-                  ),
+                  child: _isValidatingCoupon
+                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Text('Apply'),
                 ),
               ],
             ),
-          );
-        }),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _applyCoupon() async {
+    final code = _couponController.text.trim();
+    if (code.isEmpty) return;
+
+    setState(() => _isValidatingCoupon = true);
+    try {
+      final user = ref.read(userProfileProvider).valueOrNull;
+      final cart = ref.read(cartProvider);
+      
+      // Need a way to get orderCount for validation
+      // For now, passing 0 or fetching from OrderService
+      final coupon = await CouponService.validateCoupon(
+        code, 
+        userId: user?.supabaseId,
+        guestEmail: _emailController.text,
+        phone: _phoneController.text,
+      );
+
+      if (coupon == null) {
+        throw Exception('Invalid or expired coupon code');
+      }
+
+      // Check min order
+      if (coupon.minOrder != null && cart.subtotal < coupon.minOrder!) {
+        throw Exception('Minimum order amount for this coupon is ₹${coupon.minOrder}');
+      }
+
+      final discount = coupon.calculateDiscount(cart.subtotal);
+      ref.read(cartProvider.notifier).applyCoupon(coupon.code, discount);
+      _couponController.clear();
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Coupon applied! You saved ₹$discount')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: AppTheme.error),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isValidatingCoupon = false);
+    }
+  }
+
+  Widget _buildPaymentStep({Key? key}) {
+    final settingsAsync = ref.watch(paymentSettingsProvider);
+
+    return settingsAsync.when(
+      data: (settings) {
+        // Auto-select COD if Razorpay is disabled and currently selected
+        if (!settings.razorpayEnabled && _paymentMethod == 'razorpay' && settings.codEnabled) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && _paymentMethod == 'razorpay') {
+              setState(() => _paymentMethod = 'cod');
+            }
+          });
+        }
+
+        return Column(
+        key: key,
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionTitle(title: 'Choose Payment Method', icon: Icons.payment_rounded),
+          const SizedBox(height: 20),
+          if (settings.razorpayEnabled)
+            _PaymentOption(
+              id: 'razorpay',
+              title: 'Pay Online',
+              subtitle: 'Credit/Debit Cards, UPI, Netbanking',
+              icon: Icons.account_balance_wallet_rounded,
+              selectedId: _paymentMethod,
+              onChanged: (id) => setState(() => _paymentMethod = id),
+            ),
+          if (!settings.razorpayEnabled)
+             Padding(
+               padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+               child: Text(
+                 'Online payment is currently disabled.',
+                 style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6)),
+               ),
+             ),
+          if (settings.razorpayEnabled && settings.codEnabled) const SizedBox(height: 12),
+          if (settings.codEnabled)
+            _PaymentOption(
+              id: 'cod',
+              title: 'Cash on Delivery',
+              subtitle: 'Pay when your order arrives',
+              icon: Icons.money_rounded,
+              selectedId: _paymentMethod,
+              onChanged: (id) => setState(() => _paymentMethod = id),
+            ),
+          if (!settings.razorpayEnabled && !settings.codEnabled)
+            const Padding(
+              padding: EdgeInsets.all(24.0),
+              child: Center(child: Text('Online payments are currently unavailable. Please try again later.')),
+            ),
+        ],
+        );
+      },
+      loading: () => const Padding(
+        padding: EdgeInsets.all(40.0),
+        child: Center(child: CircularProgressIndicator()),
+      ),
+      error: (e, _) => Padding(
+        padding: const EdgeInsets.all(40.0),
+        child: Center(child: Text('Error loading payment methods: $e')),
+      ),
+    );
+  }
+
+  Widget _buildReviewStep({Key? key}) {
+    final cart = ref.read(cartProvider);
+    return Column(
+      key: key,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SectionTitle(title: 'Order Summary', icon: Icons.receipt_long_rounded),
+        const SizedBox(height: 20),
+        
+        // Items list
+        Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceContainer,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: cart.items.map((item) => _ReviewItem(item: item)).toList(),
+          ),
+        ),
+        
+        const SizedBox(height: 24),
+        
+        // Shipping details review
+        _SectionTitle(title: 'Delivery To', icon: Icons.location_on_rounded, small: true),
+        const SizedBox(height: 8),
+        Text(
+          '${_nameController.text}\n${_addressController.text}\n${_cityController.text}, ${_stateController.text} - ${_pincodeController.text}\nPhone: ${_phoneController.text}',
+          style: GoogleFonts.beVietnamPro(height: 1.5, color: AppTheme.onSurfaceVariant),
+        ),
+        const SizedBox(height: 24),
+        _buildCouponSection(),
+        const SizedBox(height: 24),
+        // Totals
+        _PriceRow(label: 'Subtotal', value: cart.subtotal),
+        _PriceRow(label: 'Shipping', value: cart.shippingAmount),
+        if (cart.discountAmount > 0)
+          _PriceRow(label: 'Discount', value: -cart.discountAmount, isDiscount: true),
+        const Divider(height: 32),
+        _PriceRow(label: 'Total', value: cart.total, isTotal: true),
       ],
     );
   }
 
-  Widget _buildShippingSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  Widget _buildBottomActions() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
           children: [
-            Text(
-              'Shipping Address',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            GestureDetector(
-              onTap: _showAddAddressModal,
-              child: Text(
-                '+ Add New',
-                style: GoogleFonts.outfit(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppTheme.primary,
+            if (_currentStep > 0)
+              Expanded(
+                flex: 1,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: OutlinedButton(
+                    onPressed: _isProcessing ? null : () => setState(() => _currentStep--),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Back'),
+                  ),
                 ),
+              ),
+            Expanded(
+              flex: 2,
+              child: ElevatedButton(
+                onPressed: _isProcessing ? null : () {
+                  if (_currentStep == 0) {
+                    if (_formKey.currentState!.validate()) {
+                      setState(() => _currentStep++);
+                    }
+                  } else if (_currentStep == 1) {
+                    setState(() => _currentStep++);
+                  } else {
+                    _processOrder();
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: AppTheme.onPrimary,
+                ),
+                child: _isProcessing
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : ref.watch(paymentSettingsProvider).maybeWhen(
+                        data: (_) => Text(_currentStep == 2 ? 'Place Order' : 'Continue'),
+                        loading: () => const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        ),
+                        orElse: () => Text(_currentStep == 2 ? 'Place Order' : 'Continue'),
+                      ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 12),
-        if (_fetchingAddresses)
-          const Center(child: CircularProgressIndicator())
-        else if (_savedAddresses.isEmpty)
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.location_on_outlined, color: AppTheme.outline.withValues(alpha: 0.5), size: 40),
-                const SizedBox(height: 12),
-                Text(
-                  'No saved addresses',
-                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Add a new address to continue',
-                  style: GoogleFonts.beVietnamPro(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
-                ),
-              ],
-            ),
-          )
-        else
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: _savedAddresses.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 12),
-            itemBuilder: (context, index) {
-              final addr = _savedAddresses[index];
-              final isSelected = _selectedAddress?.id == addr.id;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedAddress = addr),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).cardColor,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected ? AppTheme.primary : Theme.of(context).dividerColor.withValues(alpha: 0.05),
-                      width: isSelected ? 2 : 1,
+      ),
+    );
+  }
+}
+
+class _StepIcon extends StatelessWidget {
+  final int index;
+  final int currentIndex;
+  final String label;
+
+  const _StepIcon({required this.index, required this.currentIndex, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isCompleted = currentIndex > index;
+    final bool isActive = currentIndex == index;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            color: isCompleted ? AppTheme.primary : (isActive ? AppTheme.primary : AppTheme.outlineVariant),
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: isCompleted
+                ? const Icon(Icons.check, size: 18, color: Colors.white)
+                : Text(
+                    '${index + 1}',
+                    style: TextStyle(
+                      color: isActive ? Colors.white : AppTheme.onSurfaceVariant,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: isSelected 
-                            ? AppTheme.primary.withValues(alpha: 0.1) 
-                            : Theme.of(context).dividerColor.withValues(alpha: 0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          addr.label?.toLowerCase() == 'home' ? Icons.home_rounded : 
-                          addr.label?.toLowerCase() == 'office' ? Icons.business_rounded : Icons.location_on_rounded,
-                          size: 20,
-                          color: isSelected ? AppTheme.primary : Theme.of(context).hintColor,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              addr.label ?? 'Other',
-                              style: GoogleFonts.outfit(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            Text(
-                              addr.displayString,
-                              style: GoogleFonts.beVietnamPro(
-                                fontSize: 12,
-                                color: Theme.of(context).colorScheme.onSurfaceVariant,
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isSelected)
-                        const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 24),
-                    ],
-                  ),
-                ),
-              );
-            },
           ),
-      ],
-    );
-  }
-
-  Widget _buildPaymentSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
+        ),
+        const SizedBox(height: 4),
         Text(
-          'Payment Method',
-          style: GoogleFonts.outfit(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
+          label,
+          style: GoogleFonts.beVietnamPro(
+            fontSize: 10,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+            color: isActive ? AppTheme.primary : AppTheme.onSurfaceVariant,
           ),
-        ),
-        const SizedBox(height: 12),
-        _buildPaymentOption(
-          'UPI Transfer',
-          'Pay via PhonePe, Google Pay, Paytm',
-          Icons.account_balance_wallet_outlined,
-          'upi',
-        ),
-        const SizedBox(height: 8),
-        _buildPaymentOption(
-          'Cards / Netbanking',
-          'Powered by Razorpay',
-          Icons.credit_card_outlined,
-          'card',
-        ),
-        const SizedBox(height: 8),
-        _buildPaymentOption(
-          'Cash on Delivery',
-          'Pay when you receive the fruit',
-          Icons.payments_outlined,
-          'cod',
         ),
       ],
     );
   }
+}
 
-  Widget _buildPaymentOption(
-      String title, String subtitle, IconData icon, String value) {
-    final isSelected = _selectedPayment == value;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedPayment = value),
+class _StepDivider extends StatelessWidget {
+  final int index;
+  final int currentIndex;
+
+  const _StepDivider({required this.index, required this.currentIndex});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(14),
+        height: 2,
+        margin: const EdgeInsets.only(bottom: 14),
+        color: currentIndex > index ? AppTheme.primary : AppTheme.outlineVariant,
+      ),
+    );
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final bool small;
+
+  const _SectionTitle({required this.title, required this.icon, this.small = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: small ? 18 : 22, color: AppTheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: GoogleFonts.outfit(
+            fontSize: small ? 14 : 18,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.onSurface,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CustomTextField extends StatelessWidget {
+  final TextEditingController controller;
+  final String label;
+  final String? hint;
+  final TextInputType? keyboardType;
+  final int maxLines;
+  final String? Function(String?)? validator;
+
+  const _CustomTextField({
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.keyboardType,
+    this.maxLines = 1,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      maxLines: maxLines,
+      validator: validator,
+      decoration: InputDecoration(
+        labelText: label,
+        hintText: hint,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        filled: true,
+        fillColor: AppTheme.surfaceContainerLowest,
+      ),
+    );
+  }
+}
+
+class _PaymentOption extends StatelessWidget {
+  final String id;
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final String selectedId;
+  final Function(String) onChanged;
+
+  const _PaymentOption({
+    required this.id,
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selectedId,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isSelected = selectedId == id;
+    return InkWell(
+      onTap: () => onChanged(id),
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isSelected ? AppTheme.primary : Theme.of(context).dividerColor.withValues(alpha: 0.05),
+            color: isSelected ? AppTheme.primary : AppTheme.outlineVariant,
             width: isSelected ? 2 : 1,
           ),
+          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? AppTheme.primary.withValues(alpha: 0.05) : Colors.transparent,
         ),
         child: Row(
           children: [
-            Container(
-              width: 20,
-              height: 20,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected ? AppTheme.primary : Theme.of(context).dividerColor.withValues(alpha: 0.2),
-                  width: 2,
-                ),
-              ),
-              child: isSelected
-                  ? Center(
-                      child: Container(
-                        width: 10,
-                        height: 10,
-                        decoration: const BoxDecoration(
-                          color: AppTheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    )
-                  : null,
-            ),
-            const SizedBox(width: 14),
+            Icon(icon, color: isSelected ? AppTheme.primary : AppTheme.onSurfaceVariant),
+            const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1011,296 +1074,129 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
                   Text(
                     title,
                     style: GoogleFonts.outfit(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: isSelected ? AppTheme.primary : AppTheme.onSurface,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                   Text(
                     subtitle,
                     style: GoogleFonts.beVietnamPro(
-                      fontSize: 11,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 12,
+                      color: AppTheme.onSurfaceVariant,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
             ),
-            Icon(icon, size: 24, color: Theme.of(context).hintColor),
+            if (isSelected)
+              const Icon(Icons.check_circle, color: AppTheme.primary)
+            else
+              const Icon(Icons.circle_outlined, color: AppTheme.outlineVariant),
           ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildCouponSection(dynamic cart) {
-    final hasCoupon = cart.couponCode != null;
+class _ReviewItem extends StatelessWidget {
+  final CartItem item;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Icon(Icons.discount_rounded,
-                size: 20, color: AppTheme.primary.withValues(alpha: 0.7)),
-            const SizedBox(width: 10),
-            Text(
-              'Offers & Benefits',
-              style: GoogleFonts.outfit(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.5,
+  const _ReviewItem({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Semantics(
+              label: '${item.product.name} in order',
+              image: true,
+              child: Image.network(
+                item.product.imageMain ?? '',
+                width: 50,
+                height: 50,
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(color: Colors.grey, width: 50, height: 50),
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        if (hasCoupon)
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primary.withValues(alpha: 0.15),
-                  AppTheme.primary.withValues(alpha: 0.05),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.2), width: 1.5),
-            ),
-            child: Row(
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primary.withValues(alpha: 0.2),
-                        blurRadius: 10,
-                      )
-                    ],
-                  ),
-                  child: const Icon(Icons.check_circle_rounded, color: AppTheme.primary, size: 24),
+                Text(
+                  item.product.name,
+                  style: GoogleFonts.outfit(fontWeight: FontWeight.w600, fontSize: 14, height: 1.2),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        cart.couponCode!,
-                        style: GoogleFonts.outfit(
-                          fontWeight: FontWeight.w900,
-                          fontSize: 16,
-                          color: AppTheme.primary,
-                          letterSpacing: 1,
-                        ),
-                      ),
-                      Text(
-                        'Total savings: ₹${cart.discountAmount.toStringAsFixed(0)}',
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.primary.withValues(alpha: 0.8),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                TextButton(
-                  onPressed: _removeCoupon,
-                  style: TextButton.styleFrom(
-                    foregroundColor: AppTheme.error,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    backgroundColor: AppTheme.error.withValues(alpha: 0.1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text('Remove', style: TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  'Qty: ${item.quantity}',
+                  style: GoogleFonts.beVietnamPro(fontSize: 12, color: AppTheme.onSurfaceVariant),
                 ),
               ],
             ),
-          )
-        else
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Theme.of(context).cardColor,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _couponController,
-                        style: GoogleFonts.outfit(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.5,
-                        ),
-                        decoration: InputDecoration(
-                          hintText: 'Enter promo code',
-                          hintStyle: GoogleFonts.beVietnamPro(
-                            fontSize: 14,
-                            color: Theme.of(context).hintColor.withValues(alpha: 0.5),
-                          ),
-                          prefixIcon: Icon(Icons.confirmation_number_outlined, 
-                            color: AppTheme.primary.withValues(alpha: 0.5)),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                        ),
-                        textCapitalization: TextCapitalization.characters,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: ElevatedButton(
-                        onPressed: _validatingCoupon ? null : _applyCoupon,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppTheme.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                        ),
-                        child: _validatingCoupon
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Apply',
-                              style: TextStyle(fontWeight: FontWeight.w800),
-                            ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_couponError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 12, left: 16),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline_rounded, color: AppTheme.error, size: 14),
-                      const SizedBox(width: 8),
-                      Text(
-                        _couponError!,
-                        style: GoogleFonts.beVietnamPro(
-                          color: AppTheme.error,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
           ),
-      ],
-    );
-  }
-
-  Widget _buildBillingSummary(dynamic cart) {
-    final subtotal = cart.subtotal;
-    final discount = cart.discountAmount;
-    final shipping = cart.shippingAmount;
-    final total = cart.total;
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Theme.of(context).dividerColor.withValues(alpha: 0.05)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Billing Summary',
-            style: GoogleFonts.outfit(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '₹${(item.product.price * item.quantity).toStringAsFixed(0)}',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.bold, fontSize: 16, color: AppTheme.primary),
             ),
-          ),
-          const SizedBox(height: 14),
-          _billRow('Basket Total', '₹${subtotal.toStringAsFixed(0)}'),
-          if (discount > 0) ...[
-            const SizedBox(height: 8),
-            _billRow('Discount', '-₹${discount.toStringAsFixed(0)}',
-                valueColor: AppTheme.primary),
-          ],
-          const SizedBox(height: 8),
-          _billRow('Shipping Fee', shipping == 0 ? 'FREE' : '₹${shipping.toStringAsFixed(0)}',
-              valueColor: shipping == 0 ? AppTheme.primary : null),
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Divider(color: Theme.of(context).dividerColor.withValues(alpha: 0.1)),
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Grand Total',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 16,
-                ),
-              ),
-              Text(
-                '₹${total.toStringAsFixed(0)}',
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w800,
-                  fontSize: 18,
-                  color: AppTheme.primary,
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
   }
+}
 
-  Widget _billRow(String label, String value, {Color? valueColor}) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: GoogleFonts.beVietnamPro(
-            fontSize: 13,
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+class _PriceRow extends StatelessWidget {
+  final String label;
+  final double value;
+  final bool isTotal;
+  final bool isDiscount;
+
+  const _PriceRow({
+    required this.label,
+    required this.value,
+    this.isTotal = false,
+    this.isDiscount = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: isTotal ? 18 : 14,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? AppTheme.onSurface : AppTheme.onSurfaceVariant,
+            ),
           ),
-        ),
-        Text(
-          value,
-          style: GoogleFonts.outfit(
-            fontWeight: FontWeight.w600,
-            color: valueColor ?? Theme.of(context).colorScheme.onSurface,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              '₹${value.abs().toStringAsFixed(0)}',
+              style: GoogleFonts.outfit(
+                fontSize: isTotal ? 22 : 16,
+                fontWeight: FontWeight.bold,
+                color: isTotal ? AppTheme.primary : (isDiscount ? Colors.red : AppTheme.onSurface),
+              ),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

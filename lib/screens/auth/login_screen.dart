@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../config/theme.dart';
 import '../../services/auth_service.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/flavor_config.dart';
 import '../../widgets/glass_card.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -21,6 +22,25 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   bool _obscurePassword = true;
   bool _loading = false;
   String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    // Check for error parameters after the first frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final state = GoRouterState.of(context);
+        final error = state.uri.queryParameters['error'];
+        if (error == 'rider_not_allowed') {
+          setState(() => _error = 'Rider accounts are not allowed to login on the main app. Please use the Rider App.');
+        } else if (error == 'rider_only') {
+          setState(() => _error = 'Access Restricted: This app is for Riders only.');
+        } else if (error == 'customer_not_allowed') {
+          setState(() => _error = 'Access Restricted: Customers cannot log in to the Rider app.');
+        }
+      }
+    });
+  }
 
   @override
   void dispose() {
@@ -45,22 +65,46 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await AuthService.signInWithEmail(email: email, password: password);
+      debugPrint('LoginScreen: Sign in successful, fetching profile...');
       final profile = await ref.read(userProfileProvider.notifier).loadProfileAndReturn();
+      debugPrint('LoginScreen: Profile fetched. Role: ${profile?.role}');
 
       if (mounted) {
-        if (profile?.role == 'rider') {
+        if (profile == null) {
+          debugPrint('LoginScreen: Profile is null. Sync likely failed or role blocked.');
+          return;
+        }
+
+        if (profile.role == 'rider') {
+          debugPrint('LoginScreen: Detected rider role');
+          if (FlavorConfig.isCustomer) {
+            debugPrint('LoginScreen: Blocking rider from customer app and signing out');
+            await AuthService.signOut();
+            if (mounted) {
+              // Redirect explicitly to show the error message via query param
+              context.go('/login?error=rider_not_allowed');
+            }
+            return;
+          }
+          debugPrint('LoginScreen: Navigating to rider home');
           context.go('/rider/home');
-        } else if (profile?.role == 'admin') {
+        } else if (profile.role == 'admin') {
+          debugPrint('LoginScreen: Navigating to admin dashboard');
           context.go('/admin/dashboard');
         } else {
+          debugPrint('LoginScreen: Navigating to customer home');
           context.go('/');
         }
       }
     } catch (e) {
-      setState(() {
-        _loading = false;
-        _error = e.toString().replaceAll('Exception: ', '');
-      });
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
     }
   }
 
@@ -102,6 +146,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       },
       child: Scaffold(
         backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+        floatingActionButton: const SizedBox.shrink(),
       body: Title(
         title: 'Login | Blissfruitz',
         color: Colors.green,
@@ -462,3 +507,4 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 }
+

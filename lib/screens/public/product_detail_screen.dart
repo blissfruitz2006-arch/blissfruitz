@@ -7,9 +7,12 @@ import '../../models/product.dart';
 import '../../models/review.dart';
 import '../../services/product_service.dart';
 import '../../services/review_service.dart';
+import '../../services/seo_service.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/auth_provider.dart';
 import '../../config/theme.dart';
 import '../../widgets/app_image.dart';
+import '../../widgets/review_dialog.dart';
 import '../../widgets/product_card.dart';
 import '../../widgets/footer.dart';
 import 'package:flutter_html/flutter_html.dart';
@@ -27,6 +30,7 @@ class ProductDetailScreen extends ConsumerStatefulWidget {
 class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   Product? _product;
   List<Product> _relatedProducts = [];
+  List<Product> _featuredProducts = [];
   List<Review> _reviews = [];
   bool _isLoading = true;
   String? _error;
@@ -60,8 +64,12 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
       final related = await ProductService.getRelatedProducts(
         product.categoryId ?? 0,
         product.id,
-        limit: 4,
+        limit: 10,
       );
+
+      final featured = await ProductService.getFeaturedProducts();
+      // Exclude current product from featured
+      final filteredFeatured = featured.where((p) => p.id != product.id).toList();
 
       final reviews = await ReviewService.getProductReviews(product.id);
 
@@ -69,9 +77,31 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
         setState(() {
           _product = product;
           _relatedProducts = related;
+          _featuredProducts = filteredFeatured;
           _reviews = reviews;
           _isLoading = false;
         });
+
+        // SEO: Inject Product structured data for rich Google results
+        SeoService.injectProductSchema(
+          name: product.name,
+          description: product.shortDescription ?? product.name,
+          imageUrl: product.imageMain ?? '',
+          price: product.price,
+          slug: product.slug,
+          inStock: product.inStock,
+          category: product.category?.name,
+          comparePrice: product.comparePrice,
+        );
+
+        // SEO: Inject breadcrumb for navigation context
+        SeoService.injectBreadcrumbSchema([
+          {'name': 'Home', 'url': SeoService.fullUrl('/')},
+          {'name': 'Shop', 'url': SeoService.fullUrl('/shop')},
+          if (product.category != null)
+            {'name': product.category!.name, 'url': SeoService.fullUrl('/shop?category=${product.category!.slug}')},
+          {'name': product.name, 'url': SeoService.fullUrl('/product/${product.slug}')},
+        ]);
       }
     } catch (e) {
       if (mounted) {
@@ -110,9 +140,10 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     final contentWidth = isDesktop ? 1400.0 : screenWidth; // Increased from 1200 to 1400 for wider layout
 
     return Title(
-      title: '${_product!.name} | Blissfruitz',
+      title: SeoService.productTitle(_product!.name),
       color: AppTheme.primary,
       child: Scaffold(
+        floatingActionButton: const SizedBox.shrink(),
         body: Stack(
           children: [
             CustomScrollView(
@@ -139,7 +170,11 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
 
                 // --- 3. Related Products ---
                 if (_relatedProducts.isNotEmpty)
-                  _buildRelatedProductsSliver(isDesktop),
+                  _buildProductSliderSliver('Related Products', _relatedProducts, isDesktop),
+
+                // --- 4. You May Also Like ---
+                if (_featuredProducts.isNotEmpty)
+                  _buildProductSliderSliver('You May Also Like', _featuredProducts, isDesktop),
 
                 // --- 4. Reviews Section ---
                 _buildReviewsSectionSliver(contentWidth),
@@ -189,26 +224,28 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Widget _buildProductImage() {
-    return RepaintBoundary(
-      child: Stack(
-        children: [
-          Hero(
-            tag: 'product-${_product!.id}',
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 30,
-                    offset: const Offset(0, 15),
-                  ),
-                ],
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(32),
-                child: AspectRatio(
-                  aspectRatio: 1,
+    return Stack(
+      children: [
+        Hero(
+          tag: 'product-${_product!.id}',
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(32),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 30,
+                  offset: const Offset(0, 15),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(32),
+              child: AspectRatio(
+                aspectRatio: 1,
+                child: Semantics(
+                  label: '${_product!.name} — fresh ${_product!.category?.name ?? 'fruit'} delivery Mumbai, BlissFruitz',
+                  image: true,
                   child: AppImage(
                     path: _product!.imageMain,
                     fit: BoxFit.cover,
@@ -217,234 +254,229 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
               ),
             ),
           ),
-          if (_product!.hasDiscount)
-            Positioned(
-              top: 24,
-              right: 24,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFFE52D27), Color(0xFFB31217)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFB31217).withValues(alpha: 0.4),
-                      blurRadius: 12,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
+        ),
+        if (_product!.hasDiscount)
+          Positioned(
+            top: 24,
+            right: 24,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFE52D27), Color(0xFFB31217)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-                child: Text(
-                  '${_product!.discountPercent.toStringAsFixed(0)}% OFF',
-                  style: GoogleFonts.outfit(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 0.5,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFFB31217).withValues(alpha: 0.4),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
                   ),
+                ],
+              ),
+              child: Text(
+                '${_product!.discountPercent.toStringAsFixed(0)}% OFF',
+                style: GoogleFonts.outfit(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.5,
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 
   Widget _buildProductInfo() {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     
-    return RepaintBoundary(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Category tag
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(
-              color: AppTheme.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(100),
-            ),
-            child: Text(
-              _product!.category?.name.toUpperCase() ?? 'FRESH',
-              style: GoogleFonts.outfit(
-                color: AppTheme.primary,
-                fontSize: 11,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 1,
-              ),
-            ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Category tag
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppTheme.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(100),
           ),
-          const SizedBox(height: 16),
-          
-          // Product Name
-          Text(
-            _product!.name,
+          child: Text(
+            _product!.category?.name.toUpperCase() ?? 'FRESH',
             style: GoogleFonts.outfit(
-              fontSize: 32,
+              color: AppTheme.primary,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
-              letterSpacing: -1,
-              height: 1.1,
+              letterSpacing: 1,
             ),
           ),
-          const SizedBox(height: 12),
-          
-          // Rating & Reviews count
-          Row(
-            children: [
-              const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
-              const SizedBox(width: 4),
-              Text(
-                '4.8', // Mock rating
-                style: GoogleFonts.outfit(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                '(${_reviews.length} Reviews)',
-                style: GoogleFonts.beVietnamPro(
-                  color: isDark ? Colors.white54 : Colors.grey.shade600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
+        ),
+        const SizedBox(height: 16),
+        
+        // Product Name
+        Text(
+          _product!.name,
+          style: GoogleFonts.outfit(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -1,
+            height: 1.1,
           ),
-          const SizedBox(height: 24),
-          
-          // Price
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                '₹${_product!.price.toStringAsFixed(0)}',
+        ),
+        const SizedBox(height: 12),
+        
+        // Rating & Reviews count
+        Row(
+          children: [
+            const Icon(Icons.star_rounded, color: Colors.amber, size: 20),
+            const SizedBox(width: 4),
+            Text(
+              '4.8', // Mock rating
+              style: GoogleFonts.outfit(
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              '(${_reviews.length} Reviews)',
+              style: GoogleFonts.beVietnamPro(
+                color: isDark ? Colors.white54 : Colors.grey.shade600,
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        
+        // Price
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '₹${_product!.price.toStringAsFixed(0)}',
+              style: GoogleFonts.outfit(
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                color: AppTheme.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8.0),
+              child: Text(
+                '/ ${_product!.unit}',
                 style: GoogleFonts.outfit(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w800,
-                  color: AppTheme.primary,
+                  fontSize: 16,
+                  color: isDark ? Colors.white38 : Colors.grey.shade500,
+                  fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: 8),
+            ),
+            if (_product!.hasDiscount) ...[
+              const SizedBox(width: 16),
               Padding(
                 padding: const EdgeInsets.only(bottom: 8.0),
                 child: Text(
-                  '/ ${_product!.unit}',
+                  '₹${_product!.comparePrice!.toStringAsFixed(0)}',
                   style: GoogleFonts.outfit(
-                    fontSize: 16,
-                    color: isDark ? Colors.white38 : Colors.grey.shade500,
-                    fontWeight: FontWeight.w500,
+                    fontSize: 20,
+                    color: Colors.grey.shade500,
+                    decoration: TextDecoration.lineThrough,
                   ),
                 ),
               ),
-              if (_product!.hasDiscount) ...[
-                const SizedBox(width: 16),
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Text(
-                    '₹${_product!.comparePrice!.toStringAsFixed(0)}',
-                    style: GoogleFonts.outfit(
-                      fontSize: 20,
-                      color: Colors.grey.shade500,
-                      decoration: TextDecoration.lineThrough,
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                _DiscountBadge(percent: _product!.discountPercent.round()),
-              ],
+              const SizedBox(width: 12),
+              _DiscountBadge(percent: _product!.discountPercent.round()),
             ],
+          ],
+        ),
+        const SizedBox(height: 32),
+        
+        // Short Summary (Moved above actions)
+        if (_product!.shortDescription != null && _product!.shortDescription!.isNotEmpty) ...[
+          Text(
+            _product!.shortDescription!,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 16,
+              height: 1.6,
+              color: isDark ? Colors.white70 : Colors.black87,
+            ),
           ),
           const SizedBox(height: 32),
-          
-          // Short Summary (Moved above actions)
-          if (_product!.shortDescription != null && _product!.shortDescription!.isNotEmpty) ...[
-            Text(
-              _product!.shortDescription!,
-              style: GoogleFonts.beVietnamPro(
-                fontSize: 16,
-                height: 1.6,
-                color: isDark ? Colors.white70 : Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 32),
-          ],
-          
-          // Quantity and Actions
-          _buildActionSection(),
-          const SizedBox(height: 48),
         ],
-      ),
+        
+        // Quantity and Actions
+        _buildActionSection(),
+        const SizedBox(height: 48),
+      ],
     );
   }
 
   Widget _buildFullDescription(double contentWidth) {
     if (_product!.description == null || _product!.description!.isEmpty) return const SizedBox.shrink();
-    
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return RepaintBoundary(
-      child: Container(
-        width: double.infinity,
-        color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 60),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: contentWidth - 40),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Product Details',
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
+
+    return Container(
+      width: double.infinity,
+      color: isDark ? Colors.black.withValues(alpha: 0.2) : Colors.white,
+      padding: const EdgeInsets.symmetric(vertical: 60),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: contentWidth - 40),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Product Details',
+                style: GoogleFonts.outfit(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+              Html(
+                data: _product!.description!,
+                extensions: const [
+                  ScrollableTableHtmlExtension(),
+                ],
+                style: {
+                  "body": Style(
+                    margin: Margins.zero,
+                    padding: HtmlPaddings.zero,
+                    fontSize: FontSize(16),
+                    lineHeight: LineHeight(1.8),
+                    color: isDark ? Colors.white70 : Colors.black87,
+                    fontFamily: GoogleFonts.beVietnamPro().fontFamily,
                   ),
-                ),
-                const SizedBox(height: 32),
-                Html(
-                  data: _product!.description!,
-                  extensions: const [
-                    ScrollableTableHtmlExtension(),
-                  ],
-                  style: {
-                    "body": Style(
-                      margin: Margins.zero,
-                      padding: HtmlPaddings.zero,
-                      fontSize: FontSize(16),
-                      lineHeight: LineHeight(1.8),
-                      color: isDark ? Colors.white70 : Colors.black87,
-                      fontFamily: GoogleFonts.beVietnamPro().fontFamily,
-                    ),
-                    "table": Style(
-                      backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
-                      padding: HtmlPaddings.all(8),
-                      border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade300),
-                      margin: Margins.only(top: 16, bottom: 16),
-                    ),
-                    "th": Style(
-                      padding: HtmlPaddings.all(12),
-                      backgroundColor: isDark ? Colors.white12 : Colors.grey.shade100,
-                      fontWeight: FontWeight.bold,
-                      whiteSpace: WhiteSpace.pre,
-                      border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade300),
-                    ),
-                    "td": Style(
-                      padding: HtmlPaddings.all(12),
-                      whiteSpace: WhiteSpace.pre,
-                      border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                    ),
-                    "tr": Style(
-                       border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
-                    ),
-                  },
-                ),
-              ],
-            ),
+                  "table": Style(
+                    backgroundColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.grey.shade50,
+                    padding: HtmlPaddings.all(8),
+                    border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                    margin: Margins.only(top: 16, bottom: 16),
+                  ),
+                  "th": Style(
+                    padding: HtmlPaddings.all(12),
+                    backgroundColor: isDark ? Colors.white12 : Colors.grey.shade100,
+                    fontWeight: FontWeight.bold,
+                    whiteSpace: WhiteSpace.pre,
+                    border: Border.all(color: isDark ? Colors.white24 : Colors.grey.shade300),
+                  ),
+                  "td": Style(
+                    padding: HtmlPaddings.all(12),
+                    whiteSpace: WhiteSpace.pre,
+                    border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                  ),
+                  "tr": Style(
+                     border: Border.all(color: isDark ? Colors.white10 : Colors.grey.shade200),
+                  ),
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -604,15 +636,15 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
     );
   }
 
-  Widget _buildRelatedProductsSliver(bool isDesktop) {
+  Widget _buildProductSliderSliver(String title, List<Product> products, bool isDesktop) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return SliverPadding(
-      padding: EdgeInsets.symmetric(vertical: 60, horizontal: isDesktop ? 60 : 20),
+      padding: EdgeInsets.symmetric(vertical: 30, horizontal: isDesktop ? 60 : 20),
       sliver: SliverToBoxAdapter(
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
+            constraints: const BoxConstraints(maxWidth: 1400),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -624,26 +656,32 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                     8
                   ),
                   child: Text(
-                    'Related Products',
+                    title,
                     style: GoogleFonts.outfit(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
-                const SizedBox(height: 32),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: screenWidth > 1200 ? 5 : (screenWidth > 900 ? 4 : (screenWidth > 600 ? 3 : 2)),
-                    childAspectRatio: 0.62,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: _relatedProducts.length,
-                  itemBuilder: (context, index) => ProductCard(
-                    product: _relatedProducts[index],
+                const SizedBox(height: 24),
+                SizedBox(
+                  height: 380, // Fixed height for horizontal list
+                  child: ListView.separated(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: isDesktop ? 40 : (screenWidth < 350 ? 12 : 20),
+                      vertical: 16,
+                    ),
+                    scrollDirection: Axis.horizontal,
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: products.length,
+                    separatorBuilder: (context, index) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) => SizedBox(
+                      width: 220, // Fixed width for each card
+                      child: ProductCard(
+                        product: products[index],
+                        heroTagPrefix: title.replaceAll(' ', '_').toLowerCase(),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -675,7 +713,46 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
                       ),
                     ),
                     TextButton.icon(
-                      onPressed: () {}, // Add review functionality
+                      onPressed: () async {
+                        final isLoggedIn = ref.read(isLoggedInProvider);
+                        if (!isLoggedIn) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Please login to write a review')),
+                          );
+                          return;
+                        }
+                        
+                        final result = await showDialog<Map<String, dynamic>>(
+                          context: context,
+                          builder: (context) => const ReviewDialog(),
+                        );
+                        
+                        if (result != null && _product != null) {
+                          try {
+                            final userProfile = ref.read(userProfileProvider).valueOrNull;
+                            await ReviewService.submitReview(
+                              productId: _product!.id,
+                              userId: userProfile?.supabaseId,
+                              guestName: userProfile?.fullName,
+                              rating: result['rating'],
+                              title: result['title'],
+                              comment: result['comment'],
+                            );
+                            
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Review submitted and pending approval')),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('Failed to submit review: $e'), backgroundColor: Colors.red),
+                              );
+                            }
+                          }
+                        }
+                      },
                       icon: const Icon(Icons.add_rounded),
                       label: const Text('Write Review'),
                       style: TextButton.styleFrom(foregroundColor: AppTheme.primary),
@@ -808,20 +885,30 @@ class _ProductDetailScreenState extends ConsumerState<ProductDetailScreen> {
   }
 
   Widget _buildStockStatus() {
+    final bool isLowStock = _product!.inStock && _product!.stockQuantity < 10;
+    
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         Icon(
-          _product!.inStock ? Icons.check_circle_rounded : Icons.cancel_rounded,
-          color: _product!.inStock ? Colors.green : Colors.red,
+          _product!.inStock 
+            ? (isLowStock ? Icons.warning_amber_rounded : Icons.check_circle_rounded)
+            : Icons.cancel_rounded,
+          color: _product!.inStock 
+            ? (isLowStock ? Colors.orange : Colors.green) 
+            : Colors.red,
           size: 20,
         ),
         const SizedBox(width: 8),
         Text(
-          _product!.inStock ? 'In Stock' : 'Out of Stock',
+          !_product!.inStock 
+            ? 'Out of Stock' 
+            : (isLowStock ? 'Only ${_product!.stockQuantity} Left' : 'In Stock'),
           style: GoogleFonts.beVietnamPro(
             fontWeight: FontWeight.w600,
-            color: _product!.inStock ? Colors.green : Colors.red,
+            color: _product!.inStock 
+              ? (isLowStock ? Colors.orange[700] : Colors.green) 
+              : Colors.red,
           ),
         ),
       ],

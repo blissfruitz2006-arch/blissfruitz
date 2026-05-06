@@ -74,11 +74,10 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
           onExit: (_) => setState(() => _isHovered = false),
           child: SizedBox(
             height: widget.height,
-            child: RepaintBoundary(
-              child: PageView.builder(
-                controller: _controller,
-                clipBehavior: Clip.none, // Allow shadows to bleed out slightly to fix 5px overflow
-                itemCount: widget.banners.length > 1 ? 10000 : 1, // Large number for looping
+            child: PageView.builder(
+              controller: _controller,
+              clipBehavior: Clip.none,
+              itemCount: widget.banners.length > 1 ? 10000 : 1,
               onPageChanged: (i) {
                 setState(() => _currentPage = i);
                 _startTimer();
@@ -86,7 +85,7 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
               itemBuilder: (context, index) {
                 final bannerIndex = index % widget.banners.length;
                 final banner = widget.banners[bannerIndex];
-                
+
                 return AnimatedBuilder(
                   animation: _controller,
                   builder: (context, child) {
@@ -96,10 +95,9 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
                     } else {
                       pageOffset = (_currentPage - index).toDouble();
                     }
-                    
-                    // Clamping offset for visuals to prevent extreme values during jumps
+
                     final double parallaxOffset = pageOffset * 150.0;
-                    
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                       child: GestureDetector(
@@ -120,20 +118,18 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              // Background image with parallax and scaling
                               if (banner.imagePath != null)
                                 Transform.translate(
                                   offset: Offset(parallaxOffset, 0),
                                   child: Transform.scale(
-                                    scale: 1.1 + (pageOffset.abs() * -0.1), // Subtle scale-in effect
+                                    scale: 1.1 + (pageOffset.abs() * -0.1),
                                     child: AppImage(
                                       path: banner.imagePath,
                                       fit: BoxFit.cover,
+                                      semanticLabel: '${banner.title ?? 'Premium fruits'} — BlissFruitz banner',
                                     ),
                                   ),
                                 ),
-                              
-                              // Sophisticated Gradient overlay
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -149,37 +145,31 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
                                   ),
                                 ),
                               ),
-
-                              // Content overlay
                               Positioned.fill(
                                 child: LayoutBuilder(
                                   builder: (context, boxConstraints) {
                                     final contentWidth = boxConstraints.maxWidth;
                                     final isSmallContent = contentWidth < 350;
-                                    
-                                      return Padding(
-                                        padding: EdgeInsets.only(
-                                          left: isSmallContent ? 60 : 100,
-                                          right: 4,
-                                        ),
+
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        left: isSmallContent ? (contentWidth < 400 ? 40 : 60) : 100,
+                                        right: 16,
+                                      ),
                                       child: Align(
                                         alignment: Alignment.centerLeft,
-                                        child: RepaintBoundary(
-                                          child: _BannerContent(
-                                            banner: banner,
-                                            showTag: widget.showTag,
-                                            pageOffset: pageOffset,
-                                            onTap: () => widget.onBannerTap?.call(banner.linkUrl),
-                                            maxWidth: contentWidth,
-                                          ),
+                                        child: _BannerContent(
+                                          banner: banner,
+                                          showTag: widget.showTag,
+                                          pageOffset: pageOffset,
+                                          onTap: () => widget.onBannerTap?.call(banner.linkUrl),
+                                          maxWidth: contentWidth,
                                         ),
                                       ),
                                     );
                                   },
                                 ),
                               ),
-
-                              // Decorative floating leaf (Top Right)
                               _FloatingDecoration(
                                 pageOffset: pageOffset,
                                 top: 40,
@@ -189,8 +179,6 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
                                 opacity: 0.15,
                                 rotation: 0.5,
                               ),
-
-                              // Decorative floating leaf (Bottom Right)
                               _FloatingDecoration(
                                 pageOffset: pageOffset,
                                 bottom: 60,
@@ -211,9 +199,6 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
             ),
           ),
         ),
-      ),
-        
-        // Premium Indicators
         if (widget.banners.length > 1)
           Padding(
             padding: const EdgeInsets.only(top: 24),
@@ -224,7 +209,6 @@ class _HeroBannerCarouselState extends ConsumerState<HeroBannerCarousel> {
                 (i) => _Indicator(
                   isActive: (_currentPage % widget.banners.length) == i,
                   onTap: () {
-                    // Find the nearest page for this index to animate to
                     final currentBase = (_currentPage ~/ widget.banners.length) * widget.banners.length;
                     _controller.animateToPage(
                       currentBase + i,
@@ -392,34 +376,32 @@ class _CTAButtonState extends State<_CTAButton> {
                   ),
                 ],
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        'DISCOVER NOW',
-                        style: GoogleFonts.outfit(
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.w900,
-                          fontSize: widget.isSmall ? 11 : 14,
-                          letterSpacing: widget.isSmall ? 1.0 : 2.0,
-                        ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'DISCOVER NOW',
+                      style: GoogleFonts.outfit(
+                        color: AppTheme.primary,
+                        fontWeight: FontWeight.w900,
+                        fontSize: widget.isSmall ? 11 : 14,
+                        letterSpacing: widget.isSmall ? 1.0 : 2.0,
                       ),
                     ),
-                  ),
-                  SizedBox(width: widget.isSmall ? 8 : 12),
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    transform: Matrix4.translationValues(_isHovered ? 8 : 0, 0, 0),
-                    child: Icon(
-                      Icons.arrow_forward_rounded,
-                      size: 20,
-                      color: AppTheme.primary,
+                    SizedBox(width: widget.isSmall ? 8 : 12),
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      transform: Matrix4.translationValues(_isHovered ? 8 : 0, 0, 0),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 20,
+                        color: AppTheme.primary,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -499,4 +481,5 @@ class _Indicator extends StatelessWidget {
     );
   }
 }
+
 

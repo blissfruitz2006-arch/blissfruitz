@@ -72,12 +72,14 @@ class CartDrawer extends ConsumerWidget {
                       separatorBuilder: (_, _) => const SizedBox(height: 12),
                       itemBuilder: (context, index) {
                         final item = cart.items[index];
-                        return RepaintBoundary(
-                          child: Row(
-                            children: [
-                              // Product image
-                              ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
+                        return Row(
+                          children: [
+                            // Product image
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Semantics(
+                                label: '${item.product.name} in cart',
+                                image: true,
                                 child: Image.network(
                                   item.product.imageMain ?? '',
                                   width: 60,
@@ -91,71 +93,71 @@ class CartDrawer extends ConsumerWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 12),
-                              // Info
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      item.product.name,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '₹${item.totalPrice.toStringAsFixed(0)}',
-                                      style: TextStyle(
-                                        color:
-                                            Theme.of(context).colorScheme.primary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Quantity
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
+                            ),
+                            const SizedBox(width: 12),
+                            // Info
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline,
-                                        size: 20),
-                                    onPressed: () => ref
-                                        .read(cartProvider.notifier)
-                                        .decrementQuantity(item.product.id),
-                                    iconSize: 20,
-                                    constraints: const BoxConstraints(),
-                                    padding: const EdgeInsets.all(4),
-                                  ),
-                                  Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(horizontal: 8),
-                                    child: Text(
-                                      '${item.quantity}',
-                                      style: const TextStyle(
-                                        fontWeight: FontWeight.w700,
-                                      ),
+                                  Text(
+                                    item.product.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
                                     ),
                                   ),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_circle_outline,
-                                        size: 20),
-                                    onPressed: () => ref
-                                        .read(cartProvider.notifier)
-                                        .incrementQuantity(item.product.id),
-                                    iconSize: 20,
-                                    constraints: const BoxConstraints(),
-                                    padding: const EdgeInsets.all(4),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '₹${item.totalPrice.toStringAsFixed(0)}',
+                                    style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            ),
+                            // Quantity
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_circle_outline,
+                                      size: 20),
+                                  onPressed: () => ref
+                                      .read(cartProvider.notifier)
+                                      .decrementQuantity(item.product.id),
+                                  iconSize: 20,
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(4),
+                                ),
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.symmetric(horizontal: 8),
+                                  child: Text(
+                                    '${item.quantity}',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_circle_outline,
+                                      size: 20),
+                                  onPressed: () => ref
+                                      .read(cartProvider.notifier)
+                                      .incrementQuantity(item.product.id),
+                                  iconSize: 20,
+                                  constraints: const BoxConstraints(),
+                                  padding: const EdgeInsets.all(4),
+                                ),
+                              ],
+                            ),
+                          ],
                         );
                       },
                     ),
@@ -231,7 +233,7 @@ class CartDrawer extends ConsumerWidget {
                       child: ElevatedButton(
                         onPressed: () {
                           Navigator.pop(context);
-                          context.go('/cart');
+                          context.push('/checkout');
                         },
                         child: const Text('View Cart & Checkout'),
                       ),
@@ -245,3 +247,4 @@ class CartDrawer extends ConsumerWidget {
     );
   }
 }
+

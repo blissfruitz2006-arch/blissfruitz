@@ -88,7 +88,7 @@ class StaticPageScreen extends StatelessWidget {
                   style: GoogleFonts.beVietnamPro(
                     fontSize: 15,
                     height: 1.6,
-                    color: AppTheme.onSurfaceVariant,
+                    color: const Color.fromARGB(255, 24, 152, 24),
                   ),
                 ),
               ),

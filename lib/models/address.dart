@@ -1,6 +1,6 @@
 class Address {
   final int? id;
-  final int? userId;
+  final String? userId;
   final String? label;
   final String fullName;
   final String phone;
@@ -30,7 +30,7 @@ class Address {
   factory Address.fromJson(Map<String, dynamic> json) {
     return Address(
       id: json['id'] as int?,
-      userId: json['userId'] as int?,
+      userId: json['userId'] as String?,
       label: json['label'] as String?,
       fullName: json['fullName'] as String? ?? '',
       phone: json['phone'] as String? ?? '',
@@ -68,7 +68,7 @@ class Address {
 
   Address copyWith({
     int? id,
-    int? userId,
+    String? userId,
     String? label,
     String? fullName,
     String? phone,

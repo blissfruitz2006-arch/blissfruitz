@@ -330,3 +330,4 @@ class _ShopScreenState extends ConsumerState<ShopScreen> {
     );
   }
 }
+

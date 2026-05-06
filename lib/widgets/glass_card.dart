@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../config/theme.dart';
 
 class GlassCard extends StatelessWidget {
@@ -30,33 +31,47 @@ class GlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
+    Widget cardContent = Container(
+      padding: padding,
+      margin: margin,
+      constraints: constraints,
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        color: backgroundColor,
+        gradient: backgroundColor == null ? AppTheme.glassGradient(isDark) : null,
+        border: border ?? (showBorder 
+            ? Border.all(
+                color: isDark 
+                    ? Colors.white.withValues(alpha: 0.1) 
+                    : Colors.white.withValues(alpha: 0.2),
+                width: 1,
+              ) 
+            : null),
+      ),
+      child: child,
+    );
+
+    // Use kIsWeb from foundation for more reliable detection
+    if (!kIsWeb) {
+      cardContent = ClipRRect(
         borderRadius: borderRadius,
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-          child: Container(
-            padding: padding,
-            margin: margin,
-            constraints: constraints,
-            decoration: BoxDecoration(
-              borderRadius: borderRadius,
-              color: backgroundColor,
-              gradient: backgroundColor == null ? AppTheme.glassGradient(isDark) : null,
-              border: border ?? (showBorder 
-                  ? Border.all(
-                      color: isDark 
-                          ? Colors.white.withValues(alpha: 0.1) 
-                          : Colors.white.withValues(alpha: 0.2),
-                      width: 1,
-                    ) 
-                  : null),
-            ),
-            child: child,
-          ),
+          child: cardContent,
         ),
-      ),
+      );
+    } else {
+      // On web, BackdropFilter is extremely expensive and causes layout lag
+      cardContent = ClipRRect(
+        borderRadius: borderRadius,
+        child: cardContent,
+      );
+    }
+
+    return GestureDetector(
+      onTap: onTap,
+      child: cardContent,
     );
   }
 }
+

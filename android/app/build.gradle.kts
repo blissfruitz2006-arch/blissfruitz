@@ -21,7 +21,6 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.blissfruitz.app"
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
@@ -29,11 +28,31 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "app"
+    productFlavors {
+        create("customer") {
+            dimension = "app"
+            applicationId = "com.blissfruitz.customer"
+            versionNameSuffix = "-customer"
+            resValue("string", "app_name", "BlissFruitz")
+        }
+        create("rider") {
+            dimension = "app"
+            applicationId = "com.blissfruitz.rider"
+            versionNameSuffix = "-rider"
+            resValue("string", "app_name", "BF Rider")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig = signingConfigs.getByName("debug")
+            
+            // Enable R8 / ProGuard for size optimization
+            isMinifyEnabled = true
+            isShrinkResources = true
             
             // Apply ProGuard rules to prevent crashes with native plugins like Razorpay
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")

@@ -4,13 +4,14 @@ import '../config/supabase_config.dart';
 import '../models/order.dart';
 import '../models/cart.dart';
 import 'email_service.dart';
+import 'coupon_service.dart';
 
 class OrderService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   /// Create a new order from the current cart
   static Future<Order> createOrder({
-    int? userId,
+    String? userId,
     String? guestEmail,
     required String shippingName,
     required String shippingPhone,
@@ -30,9 +31,23 @@ class OrderService {
     double? longitude,
   }) async {
     try {
-      // Generate order number
+      // Final coupon usage check
+      if (couponCode != null && couponCode.isNotEmpty) {
+        final isUsed = await CouponService.isCouponUsedByCustomer(
+          couponCode,
+          userId: userId,
+          guestEmail: guestEmail,
+          phone: shippingPhone,
+        );
+        if (isUsed) {
+          throw Exception('The coupon code "$couponCode" has already been used by you.');
+        }
+      }
+
+      // Generate order number with millisecond and microsecond components to ensure uniqueness
+      final now = DateTime.now();
       final orderNumber =
-          'BF-${DateTime.now().millisecondsSinceEpoch.toString().substring(4)}';
+          'BF-${now.millisecondsSinceEpoch.toString().substring(4)}-${(100 + (now.microsecond % 900))}';
 
       // Insert the order
       final orderData = await _client
@@ -53,19 +68,28 @@ class OrderService {
             'discountAmount': discountAmount,
             'total': total,
             'couponCode': couponCode,
-            'orderStatus': 'pending',
+            'orderStatus': paymentMethod == 'cod' ? 'placed' : 'pending',
             'paymentStatus': 'pending',
             'paymentMethod': paymentMethod,
             'latitude': latitude,
             'longitude': longitude,
-            if (latitude != null && longitude != null)
-              'locationLink': 'https://www.google.com/maps?q=$latitude,$longitude',
-            'updatedAt': DateTime.now().toIso8601String(),
+            'locationLink': latitude != null && longitude != null
+              ? 'https://www.google.com/maps?q=$latitude,$longitude'
+              : null,
+            'items': items.map((i) => {
+              'productId': i.product.id,
+              'name': i.product.name,
+              'price': i.product.price,
+              'quantity': i.quantity,
+            }).toList(),
+            'createdAt': now.toIso8601String(),
+            'updatedAt': now.toIso8601String(),
           })
           .select()
           .single();
 
       final orderId = orderData['id'] as int;
+      debugPrint('Order created with ID: $orderId');
 
       // Insert order items
       final orderItems = items.map((item) => {
@@ -74,24 +98,42 @@ class OrderService {
             'name': item.product.name,
             'price': item.product.price,
             'quantity': item.quantity,
+            'totalPrice': item.product.price * item.quantity,
           }).toList();
 
       await _client.from('OrderItem').insert(orderItems);
+      debugPrint('Order items inserted for order: $orderId');
 
-      final order = Order.fromJson(orderData);
+      // Create full order object including items for confirmation email and success screen
+      final order = Order.fromJson({
+        ...orderData,
+        'OrderItem': items.map((i) => {
+          'productId': i.product.id,
+          'name': i.product.name,
+          'price': i.product.price,
+          'quantity': i.quantity,
+          'totalPrice': i.product.price * i.quantity,
+          'Product': i.product.toJson(),
+        }).toList(),
+      });
       
-      // Send order confirmation email asynchronously
-      EmailService.sendOrderConfirmation(order);
+      // Send order confirmation email asynchronously only for COD
+      // For online payments, we send it after payment success in updatePaymentStatus
+      if (paymentMethod == 'cod') {
+        EmailService.sendOrderConfirmation(order).catchError((e) {
+          debugPrint('Silent error sending confirmation email: $e');
+        });
+      }
 
       return order;
     } catch (e) {
-      debugPrint('Error placing order: $e');
+      debugPrint('CRITICAL: Error placing order: $e');
       rethrow;
     }
   }
 
   /// Get orders for a specific user
-  static Future<List<Order>> getUserOrders(int userId) async {
+  static Future<List<Order>> getUserOrders(String userId) async {
     final data = await _client
         .from('Order')
         .select('*, OrderItem(*)')
@@ -140,6 +182,66 @@ class OrderService {
     }
   }
 
+  /// Create a Razorpay Order ID securely via Edge Function
+  static Future<String?> createRazorpayOrder({
+    required int amountInPaise,
+    required String receipt,
+  }) async {
+    debugPrint('Creating Razorpay Order securely...');
+    try {
+      final res = await SupabaseConfig.client.functions.invoke(
+        'create-razorpay-order',
+        body: {
+          'amount': amountInPaise,
+          'receipt': receipt,
+        },
+      );
+      
+      if (res.status == 200) {
+        debugPrint('Razorpay Order created successfully.');
+        return res.data['id'] as String;
+      } else {
+        debugPrint('Failed to create Razorpay Order: ${res.data}');
+        return null;
+      }
+    } catch (e) {
+      debugPrint('createRazorpayOrder error: $e');
+      return null;
+    }
+  }
+
+  /// Securely verify payment signature via Edge Function
+  static Future<bool> verifyPaymentSignature({
+    required int orderId,
+    required String razorpayPaymentId,
+    required String razorpayOrderId,
+    required String razorpaySignature,
+  }) async {
+    debugPrint('Verifying payment signature for order $orderId securely...');
+    try {
+      final res = await SupabaseConfig.client.functions.invoke(
+        'verify-razorpay',
+        body: {
+          'order_id': orderId,
+          'razorpay_payment_id': razorpayPaymentId,
+          'razorpay_order_id': razorpayOrderId,
+          'razorpay_signature': razorpaySignature,
+        },
+      );
+      
+      if (res.status == 200) {
+        debugPrint('Payment signature verified successfully by Edge Function.');
+        return true;
+      } else {
+        debugPrint('Payment verification failed: ${res.data}');
+        return false;
+      }
+    } catch (e) {
+      debugPrint('verifyPaymentSignature error: $e');
+      return false;
+    }
+  }
+
   /// Update order payment status (after Razorpay callback)
   static Future<void> updatePaymentStatus({
     required int orderId,
@@ -148,21 +250,55 @@ class OrderService {
     String? razorpayPaymentId,
     String? razorpayOrderId,
   }) async {
-    final Map<String, dynamic> updates = {
-      'paymentStatus': paymentStatus,
-      'razorpayPaymentId': razorpayPaymentId,
-      'razorpayOrderId': razorpayOrderId,
-      'updatedAt': DateTime.now().toIso8601String(),
-    };
+    debugPrint('Updating payment status for order $orderId to $paymentStatus via RPC');
+    
+    try {
+      final response = await _client.rpc('update_order_payment_v1', params: {
+        'p_order_id': orderId,
+        'p_payment_status': paymentStatus,
+        'p_order_status': orderStatus,
+        'p_razorpay_payment_id': razorpayPaymentId,
+        'p_razorpay_order_id': razorpayOrderId,
+      });
 
-    if (orderStatus != null) {
-      updates['orderStatus'] = orderStatus;
+      if (response != null) {
+        final result = Map<String, dynamic>.from(response);
+        if (result['success'] == true) {
+          debugPrint('Successfully updated payment status for order $orderId');
+        } else {
+          debugPrint('Failed to update payment status: ${result['message']}');
+        }
+      }
+    } catch (e) {
+      debugPrint('Error calling update_order_payment_v1: $e');
+      // Fallback to direct update (may fail due to RLS but better than nothing)
+      final Map<String, dynamic> updates = {
+        'paymentStatus': paymentStatus,
+        'razorpayPaymentId': razorpayPaymentId,
+        'razorpayOrderId': razorpayOrderId,
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      if (orderStatus != null) updates['orderStatus'] = orderStatus;
+      await _client.from('Order').update(updates).eq('id', orderId);
     }
 
-    await _client.from('Order').update(updates).eq('id', orderId);
+    // Send confirmation email now that payment is confirmed
+    if (paymentStatus == 'paid') {
+      try {
+        final fullOrder = await getOrderById(orderId);
+        if (fullOrder != null) {
+          EmailService.sendOrderConfirmation(fullOrder).catchError((e) {
+            debugPrint('Error sending confirmation email after payment: $e');
+          });
+        }
+      } catch (e) {
+        debugPrint('Failed to send confirmation email after payment: $e');
+      }
+    }
   }
 
-  static Future<int> getUserOrderCount(int userId) async {
+  static Future<int> getUserOrderCount(String? userId) async {
+    if (userId == null) return 0;
     try {
       final response = await _client
           .from('Order')
@@ -285,7 +421,7 @@ class OrderService {
   }
 
   /// Get a stream of orders for a user
-  static Stream<List<Order>> getUserOrdersStream(int userId) {
+  static Stream<List<Order>> getUserOrdersStream(String userId) {
     return _client
         .from('Order')
         .stream(primaryKey: ['id'])
@@ -307,5 +443,29 @@ class OrderService {
               .order('createdAt', ascending: false);
           return (orders as List).map((o) => Order.fromJson(o)).toList();
         });
+  }
+
+  /// Get delivery info (rider assignment + proof image) for an order
+  static Future<Map<String, dynamic>?> getDeliveryInfo(int orderId, {String? contact}) async {
+    try {
+      final data = await _client
+          .from('delivery_assignments')
+          .select('*, rider:riders(*)')
+          .eq('order_id', orderId)
+          .maybeSingle();
+
+      if (data == null) return null;
+
+      final rider = data['rider'] as Map<String, dynamic>?;
+      return {
+        'rider_name': rider?['full_name'] ?? 'Rider',
+        'rider_phone': rider?['phone'],
+        'proof_image_url': data['proof_image_url'],
+        'status': data['status'],
+      };
+    } catch (e) {
+      debugPrint('OrderService.getDeliveryInfo error: $e');
+      return null;
+    }
   }
 }

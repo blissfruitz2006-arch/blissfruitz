@@ -1,40 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pinput/pinput.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'dart:typed_data';
+import 'package:go_router/go_router.dart';
 import '../../config/theme.dart';
 import '../../models/delivery_assignment.dart';
 import '../../models/rider.dart';
 import '../../providers/delivery_provider.dart';
 
 class OrderDetailScreen extends ConsumerStatefulWidget {
-  final DeliveryAssignment assignment;
-  const OrderDetailScreen({super.key, required this.assignment});
+  final String? orderId;
+  final DeliveryAssignment? assignment;
+  
+  const OrderDetailScreen({
+    super.key, 
+    this.orderId,
+    this.assignment,
+  });
+  
   @override
   ConsumerState<OrderDetailScreen> createState() => _OrderDetailScreenState();
 }
 
 class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
-  late DeliveryAssignment _assignment;
+  DeliveryAssignment? _assignment;
+  bool _isLoading = false;
   bool _isUpdating = false;
 
   @override
   void initState() {
     super.initState();
-    _assignment = widget.assignment;
+    if (widget.assignment != null) {
+      _assignment = widget.assignment;
+      _isLoading = false;
+    } else if (widget.orderId != null) {
+      _loadAssignment();
+    } else {
+      _isLoading = false;
+    }
+  }
+
+  Future<void> _loadAssignment() async {
+    setState(() => _isLoading = true);
+    try {
+      final assignments = await ref.read(myAssignmentsProvider.future);
+      final found = assignments.where((a) => 
+        a.id == widget.orderId || a.orderId.toString() == widget.orderId
+      ).firstOrNull;
+      
+      if (mounted) {
+        setState(() => _assignment = found);
+      }
+    } catch (e) {
+      debugPrint('Error loading assignment: $e');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   Future<void> _updateStatus(DeliveryStatus newStatus) async {
-    if (_isUpdating) return;
+    if (_isUpdating || _assignment == null) return;
     setState(() => _isUpdating = true);
     try {
       final service = ref.read(deliveryServiceProvider);
-      await service.updateDeliveryStatus(_assignment.id, newStatus);
-      setState(() => _assignment = _assignment.copyWith(status: newStatus));
+      final id = _assignment?.id;
+      if (id == null) return;
+      await service.updateDeliveryStatus(id, newStatus);
+      if (mounted) {
+        setState(() => _assignment = _assignment?.copyWith(status: newStatus));
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Status updated to ${_assignment.statusLabel}'),
+          content: Text('Status updated to ${_assignment!.statusLabel}'),
           backgroundColor: const Color(0xFF059669),
         ));
       }
@@ -44,7 +83,8 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   }
 
   Future<void> _launchMaps() async {
-    final order = _assignment.order;
+    if (_assignment == null) return;
+    final order = _assignment!.order;
     final lat = order?.latitude;
     final lng = order?.longitude;
     final addr = order?.shippingAddress ?? '';
@@ -62,84 +102,121 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   }
 
   Future<void> _callCustomer() async {
-    final phone = _assignment.order?.shippingPhone;
+    if (_assignment == null) return;
+    final phone = _assignment!.order?.shippingPhone;
     if (phone == null || phone.isEmpty) return;
     final uri = Uri(scheme: 'tel', path: phone);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  void _showOtpSheet() {
-    final otpCtrl = TextEditingController();
-    showModalBottomSheet(
+  Future<void> _showPhotoConfirmationSheet() async {
+    if (_assignment == null) return;
+    final picker = ImagePicker();
+    XFile? pickedFile;
+    Uint8List? imageBytes;
+
+    await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
         final cs = Theme.of(ctx).colorScheme;
         final isDark = Theme.of(ctx).brightness == Brightness.dark;
-        return Container(
-          padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
-          decoration: BoxDecoration(
-            color: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          ),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Container(width: 40, height: 4, decoration: BoxDecoration(color: cs.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
-            const SizedBox(height: 20),
-            Icon(Icons.verified_user_rounded, size: 48, color: cs.primary),
-            const SizedBox(height: 12),
-            Text('Enter Delivery OTP', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface)),
-            const SizedBox(height: 6),
-            Text('Ask the customer for the 4-digit code', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
-            const SizedBox(height: 24),
-            Pinput(
-              controller: otpCtrl,
-              length: 4,
-              defaultPinTheme: PinTheme(
-                width: 60, height: 60,
-                textStyle: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w700, color: cs.onSurface),
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkSurfaceContainerLow : AppTheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: cs.outline.withValues(alpha: 0.3)),
-                ),
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: EdgeInsets.fromLTRB(24, 24, 24, MediaQuery.of(ctx).viewInsets.bottom + 32),
+              decoration: BoxDecoration(
+                color: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
               ),
-              focusedPinTheme: PinTheme(
-                width: 60, height: 60,
-                textStyle: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w700, color: cs.primary),
-                decoration: BoxDecoration(
-                  color: isDark ? AppTheme.darkSurfaceContainerLow : AppTheme.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: cs.primary, width: 2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(width: double.infinity, child: ElevatedButton.icon(
-              onPressed: () async {
-                if (otpCtrl.text.length != 4) return;
-                Navigator.pop(ctx);
-                setState(() => _isUpdating = true);
-                try {
-                  final service = ref.read(deliveryServiceProvider);
-                  final ok = await service.confirmDeliveryWithOtp(_assignment.id, otpCtrl.text);
-                  if (ok) {
-                    setState(() => _assignment = _assignment.copyWith(status: DeliveryStatus.delivered));
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('🎉 Delivery confirmed!'), backgroundColor: Color(0xFF059669)));
-                      Future.delayed(const Duration(seconds: 1), () { if (mounted) Navigator.pop(context); });
-                    }
-                  } else {
-                    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invalid OTP. Try again.'), backgroundColor: AppTheme.error));
-                  }
-                } catch (e) {
-                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.error));
-                } finally { if (mounted) setState(() => _isUpdating = false); }
-              },
-              icon: const Icon(Icons.check_circle_rounded),
-              label: const Text('Verify & Complete'),
-            )),
-          ]),
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                Container(width: 40, height: 4, decoration: BoxDecoration(color: cs.outline.withValues(alpha: 0.3), borderRadius: BorderRadius.circular(2))),
+                const SizedBox(height: 20),
+                Icon(Icons.camera_alt_rounded, size: 48, color: cs.primary),
+                const SizedBox(height: 12),
+                Text('Delivery Confirmation', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                const SizedBox(height: 6),
+                Text('Take a picture of the delivery as proof', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+                const SizedBox(height: 24),
+                if (imageBytes != null)
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.memory(imageBytes!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                  )
+                else
+                  GestureDetector(
+                    onTap: () async {
+                      pickedFile = await picker.pickImage(source: ImageSource.camera, imageQuality: 70);
+                      if (pickedFile != null) {
+                        final bytes = await pickedFile!.readAsBytes();
+                        setModalState(() {
+                          imageBytes = bytes;
+                        });
+                      }
+                    },
+                    child: Container(
+                      height: 200,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: isDark ? AppTheme.darkSurfaceContainerLow : AppTheme.surfaceContainerLow,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: cs.outline.withValues(alpha: 0.3), style: BorderStyle.solid),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add_a_photo_rounded, size: 40, color: cs.primary.withValues(alpha: 0.5)),
+                          const SizedBox(height: 8),
+                          Text('Click to Take Photo', style: TextStyle(color: cs.primary, fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 24),
+                SizedBox(width: double.infinity, child: ElevatedButton.icon(
+                  onPressed: imageBytes == null ? null : () async {
+                    Navigator.pop(ctx);
+                    setState(() => _isUpdating = true);
+                    final messenger = ScaffoldMessenger.of(context);
+                    final navigator = Navigator.of(context);
+                    try {
+                      final service = ref.read(deliveryServiceProvider);
+                      
+                      final id = _assignment?.id;
+                      if (id == null) return;
+                      
+                      // 1. Upload the image
+                      final imageUrl = await service.uploadDeliveryProof(id, imageBytes!);
+                      
+                      // 2. Confirm delivery with image URL
+                      final ok = await service.confirmDeliveryWithPhoto(id, imageUrl);
+                      
+                      if (ok) {
+                        setState(() => _assignment = _assignment?.copyWith(status: DeliveryStatus.delivered));
+                        if (mounted) {
+                          messenger.showSnackBar(const SnackBar(content: Text('🎉 Delivery confirmed with photo!'), backgroundColor: Color(0xFF059669)));
+                          Future.delayed(const Duration(seconds: 1), () { if (mounted) navigator.pop(); });
+                        }
+                      } else {
+                        if (mounted) messenger.showSnackBar(const SnackBar(content: Text('Failed to confirm delivery. Try again.'), backgroundColor: AppTheme.error));
+                      }
+                    } catch (e) {
+                      if (mounted) messenger.showSnackBar(SnackBar(content: Text('$e'), backgroundColor: AppTheme.error));
+                    } finally { if (mounted) setState(() => _isUpdating = false); }
+                  },
+                  icon: const Icon(Icons.check_circle_rounded),
+                  label: const Text('Confirm & Complete'),
+                )),
+                const SizedBox(height: 12),
+                if (imageBytes != null)
+                  TextButton(
+                    onPressed: () => setModalState(() => imageBytes = null),
+                    child: const Text('Retake Photo'),
+                  ),
+              ]),
+            );
+          }
         );
       },
     );
@@ -147,35 +224,64 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    
+    if (_assignment == null) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('Order Not Found')),
+        body: const Center(child: Text('Could not load order details.')),
+      );
+    }
+
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    final order = _assignment.order;
+    final order = _assignment!.order;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Order #${_assignment.orderId}'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back_rounded), onPressed: () => Navigator.pop(context)),
-      ),
       body: _isUpdating
           ? const Center(child: CircularProgressIndicator())
-          : ListView(padding: const EdgeInsets.all(20), children: [
-              _statusBanner(cs),
-              const SizedBox(height: 16),
-              _orderCard(order, isDark, cs),
-              const SizedBox(height: 12),
-              _customerCard(order, isDark, cs),
-              const SizedBox(height: 12),
-              _mapPlaceholder(isDark, cs),
-              const SizedBox(height: 20),
-              _actionButtons(cs),
-              const SizedBox(height: 24),
-            ]),
+          : ListView(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 140),
+              children: [
+                // Custom Header with Back Button
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_rounded),
+                      onPressed: () => context.pop(),
+                      style: IconButton.styleFrom(
+                        backgroundColor: cs.surfaceContainerHigh,
+                        padding: const EdgeInsets.all(12),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Text(
+                      'Order #${_assignment!.orderId}',
+                      style: GoogleFonts.outfit(fontSize: 24, fontWeight: FontWeight.w900),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _statusBanner(cs),
+                const SizedBox(height: 16),
+                _orderCard(order, isDark, cs),
+                const SizedBox(height: 12),
+                _customerCard(order, isDark, cs),
+                const SizedBox(height: 12),
+                _mapPlaceholder(isDark, cs),
+                const SizedBox(height: 20),
+                _actionButtons(cs),
+              ],
+            ),
     );
   }
 
   Widget _statusBanner(ColorScheme cs) {
+    final assignment = _assignment!;
     Color bg;
-    switch (_assignment.status) {
+    switch (assignment.status) {
       case DeliveryStatus.assigned: bg = const Color(0xFF3B82F6); break;
       case DeliveryStatus.pickedUp: bg = const Color(0xFFF59E0B); break;
       case DeliveryStatus.onTheWay: bg = const Color(0xFF8B5CF6); break;
@@ -188,15 +294,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       child: Row(children: [
         Icon(_statusIcon(), color: bg, size: 22),
         const SizedBox(width: 10),
-        Text(_assignment.statusLabel, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: bg)),
+        Text(assignment.statusLabel, style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: bg)),
         const Spacer(),
-        if (_assignment.assignedAt != null) Text(_formatTime(_assignment.assignedAt!), style: TextStyle(fontSize: 12, color: bg.withValues(alpha: 0.7))),
+        if (assignment.assignedAt != null) Text(_formatTime(assignment.assignedAt!), style: TextStyle(fontSize: 12, color: bg.withValues(alpha: 0.7))),
       ]),
     );
   }
 
   IconData _statusIcon() {
-    switch (_assignment.status) {
+    final assignment = _assignment!;
+    switch (assignment.status) {
       case DeliveryStatus.assigned: return Icons.assignment_rounded;
       case DeliveryStatus.pickedUp: return Icons.inventory_2_rounded;
       case DeliveryStatus.onTheWay: return Icons.delivery_dining_rounded;
@@ -206,6 +313,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   }
 
   Widget _orderCard(dynamic order, bool isDark, ColorScheme cs) {
+    final assignment = _assignment!;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(color: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white, borderRadius: BorderRadius.circular(20),
@@ -213,7 +321,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Order Summary', style: GoogleFonts.outfit(fontSize: 15, fontWeight: FontWeight.w700, color: cs.onSurface)),
         const SizedBox(height: 12),
-        _infoRow('Order ID', '#${_assignment.orderId}', cs),
+        _infoRow('Order ID', '#${assignment.orderId}', cs),
         _infoRow('Items', '${order?.items.length ?? 0} items', cs),
         _infoRow('Total', '₹${(order?.total ?? 0).toStringAsFixed(2)}', cs, bold: true),
         _infoRow('Payment', order?.paymentLabel ?? 'N/A', cs),
@@ -273,7 +381,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   }
 
   Widget _actionButtons(ColorScheme cs) {
-    final status = _assignment.status;
+    final status = _assignment!.status;
     if (status == DeliveryStatus.delivered || status == DeliveryStatus.failed) {
       return Container(
         padding: const EdgeInsets.all(16),
@@ -312,9 +420,9 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
       ],
       if (status == DeliveryStatus.onTheWay)
         SizedBox(width: double.infinity, child: ElevatedButton.icon(
-          onPressed: _showOtpSheet,
-          icon: const Icon(Icons.verified_rounded),
-          label: const Text('Confirm Delivery (OTP)'),
+          onPressed: _showPhotoConfirmationSheet,
+          icon: const Icon(Icons.camera_alt_rounded),
+          label: const Text('Confirm Delivery (Photo)'),
           style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669)),
         )),
     ]);
@@ -332,3 +440,4 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     return '${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')}';
   }
 }
+

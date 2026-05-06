@@ -53,7 +53,7 @@ class AdminService {
         .eq('supabaseId', supabaseId);
   }
 
-  static Future<Map<String, dynamic>> getUserStats(int userId) async {
+  static Future<Map<String, dynamic>> getUserStats(String userId) async {
     try {
       final orders = await _supabase
           .from('Order')
@@ -112,7 +112,7 @@ class AdminService {
     await _supabase.from('User').delete().eq('supabaseId', supabaseId);
   }
 
-  static Future<List<Order>> getUserOrders(int userId) async {
+  static Future<List<Order>> getUserOrders(String userId) async {
     try {
       final response = await _supabase
           .from('Order')
@@ -132,7 +132,13 @@ class AdminService {
           .from('Order')
           .select('*, OrderItem(*)')
           .order('createdAt', ascending: false);
-      return (response as List).map((o) => Order.fromJson(o)).toList();
+      
+      final orders = (response as List).map((o) => Order.fromJson(o)).toList();
+      debugPrint('AdminService: Fetched ${orders.length} orders for admin');
+      if (orders.isNotEmpty) {
+        debugPrint('AdminService: Order statuses: ${orders.map((o) => o.orderStatus).take(5).toList()}...');
+      }
+      return orders;
     } catch (e) {
       debugPrint('AdminService.getAdminOrders error: $e');
       rethrow;
@@ -353,20 +359,6 @@ class AdminService {
     await _supabase.from('Review').delete().eq('id', id);
   }
 
-  // --- Settings CRUD ---
-  static Future<Map<String, dynamic>> getSettings(String table) async {
-    final response = await _supabase.from(table).select().eq('id', 1).single();
-    return response;
-  }
-
-  static Future<void> updateSettings(String table, Map<String, dynamic> data) async {
-    final updateData = Map<String, dynamic>.from(data)
-      ..remove('id')
-      ..remove('updated_at')
-      ..remove('created_at');
-    
-    await _supabase.from(table).update(updateData).eq('id', 1);
-  }
 
   // --- Messages ---
   static Future<List<Map<String, dynamic>>> getMessages() async {
@@ -402,7 +394,8 @@ class AdminService {
     if (input.startsWith('http') || 
         input.contains('://') || 
         input.startsWith('//') || 
-        input.startsWith('data:')) {
+        input.startsWith('data:') ||
+        input.contains('.supabase.co/storage/v1/object/public/')) {
       if (input.startsWith('//')) return 'https:$input';
       return input;
     }
@@ -520,5 +513,15 @@ class AdminService {
         'total_customers': 0,
       };
     }
+  }
+
+  // --- Category Management ---
+  static Future<Map<String, dynamic>> createCategory(Map<String, dynamic> data) async {
+    final response = await _supabase
+        .from('Category')
+        .insert(data)
+        .select()
+        .single();
+    return response;
   }
 }

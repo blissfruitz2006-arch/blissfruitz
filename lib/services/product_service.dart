@@ -2,7 +2,7 @@ import '../config/supabase_config.dart';
 import '../models/product.dart';
 
 class ProductService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   static Future<List<Product>> getProducts({
     String? categorySlug,

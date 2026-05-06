@@ -226,15 +226,19 @@ class _StatusBadge extends StatelessWidget {
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(99),
       ),
-      child: Text(
-        status.toUpperCase(),
-        style: GoogleFonts.outfit(
-          color: color,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 1.0,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          status.toUpperCase(),
+          style: GoogleFonts.outfit(
+            color: color,
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1.0,
+          ),
         ),
       ),
     );
   }
 }
+

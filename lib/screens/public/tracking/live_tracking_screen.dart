@@ -295,3 +295,4 @@ class ConfettiPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant ConfettiPainter oldDelegate) => true;
 }
+

@@ -256,3 +256,4 @@ class _AddRiderScreenState extends ConsumerState<AddRiderScreen> {
     );
   }
 }
+

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../config/supabase_config.dart';
 import '../models/rider.dart';
 import '../models/delivery_assignment.dart';
@@ -48,7 +49,11 @@ class RiderService {
 
       final response = await _supabase
           .from('delivery_assignments')
-          .select('*, Order(*, OrderItem(*)), riders(*)')
+          .select('''
+            *,
+            Order (*, OrderItem (*)),
+            riders (*)
+          ''')
           .eq('rider_id', userId)
           .order('assigned_at', ascending: false);
       
@@ -104,8 +109,8 @@ class RiderService {
       // We provide a NoopStorage to avoid "asyncStorage != null" assertion errors
       // caused by the default PKCE flow in newer Supabase SDKs.
       final tempClient = SupabaseClient(
-        SupabaseConfig.supabaseUrl,
-        SupabaseConfig.supabaseAnonKey,
+        SupabaseConfig.effectiveUrl,
+        SupabaseConfig.effectiveKey,
         authOptions: AuthClientOptions(
           authFlowType: AuthFlowType.implicit,
           pkceAsyncStorage: _NoopStorage(),
@@ -115,7 +120,10 @@ class RiderService {
       final authResponse = await tempClient.auth.signUp(
         email: email,
         password: password,
-        data: {'full_name': fullName},
+        data: {
+          'full_name': fullName,
+          'role': 'rider',
+        },
       );
 
       final userId = authResponse.user?.id;

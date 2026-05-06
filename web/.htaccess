@@ -1,15 +1,12 @@
 <IfModule mod_rewrite.c>
   RewriteEngine On
   RewriteBase /
-
-  # Allow Flutter to control its own routing (Fixes 404s when you refresh a page)
-  RewriteRule ^index\.html$ - [L]
-  RewriteCond %{REQUEST_FILENAME} !-f
-  RewriteCond %{REQUEST_FILENAME} !-d
-  RewriteRule . /index.html [L]
-</IfModule>
-
-# Fix WebAssembly (WASM) loading issues for Flutter
-<IfModule mod_mime.c>
-  AddType application/wasm .wasm
+  
+  # If the request is for a real file or directory, serve it
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+  
+  # Otherwise, send everything to index.html
+  RewriteRule ^ index.html [L]
 </IfModule>

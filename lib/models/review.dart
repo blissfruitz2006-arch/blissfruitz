@@ -1,7 +1,7 @@
 class Review {
   final int id;
   final int productId;
-  final int? userId;
+  final String? userId;
   final String? guestName;
   final int rating;
   final String? title;
@@ -25,7 +25,7 @@ class Review {
     return Review(
       id: json['id'] as int,
       productId: json['productId'] as int? ?? 0,
-      userId: json['userId'] as int?,
+      userId: json['userId'] as String?,
       guestName: json['guestName'] as String?,
       rating: json['rating'] as int? ?? 5,
       title: json['title'] as String?,

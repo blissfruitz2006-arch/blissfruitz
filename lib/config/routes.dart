@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/responsive_scaffold.dart';
 import '../screens/public/home_screen.dart';
 import '../screens/public/shop_screen.dart';
 import '../screens/public/product_detail_screen.dart';
 import '../screens/public/cart_screen.dart';
 import '../screens/public/checkout_screen.dart';
+import '../screens/public/order_success_screen.dart';
+import '../screens/public/order_failed_screen.dart';
 import '../screens/public/blog_list_screen.dart';
 import '../screens/public/blog_detail_screen.dart';
 import '../screens/public/contact_screen.dart';
@@ -17,8 +18,6 @@ import '../screens/public/order_tracking_screen.dart';
 import '../screens/public/order_tracking_lookup_screen.dart';
 import '../screens/public/address_screen.dart';
 import '../screens/public/maintenance_screen.dart';
-import '../screens/public/order_success_screen.dart';
-import '../screens/public/order_failed_screen.dart';
 import '../screens/public/settings_screen.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/auth/register_screen.dart';
@@ -36,8 +35,8 @@ import '../screens/admin/content/blog_manager_screen.dart';
 import '../screens/admin/coupons/coupon_manager_screen.dart';
 import '../screens/admin/reviews/review_manager_screen.dart';
 import '../screens/admin/messages/message_list_screen.dart';
-import '../screens/admin/settings/settings_screen.dart';
 import '../screens/admin/sticker_generator_screen.dart';
+import '../screens/admin/settings/admin_settings_screen.dart';
 import '../screens/admin/riders/rider_list_screen.dart';
 import '../screens/admin/riders/add_rider_screen.dart';
 import '../screens/admin/riders/assign_rider_screen.dart';
@@ -50,13 +49,15 @@ import '../screens/rider/rider_home_screen.dart';
 import '../screens/rider/order_detail_screen.dart' as rider;
 import '../screens/rider/navigation_screen.dart';
 import '../screens/rider/earnings_screen.dart';
+import '../screens/rider/rider_profile_screen.dart';
 import '../screens/public/tracking/live_tracking_screen.dart';
-import '../services/notification_service.dart';
+import '../screens/public/delivery_area_screen.dart';
 
 import '../models/product.dart';
 import '../services/auth_service.dart';
 import '../providers/settings_provider.dart';
 import '../providers/auth_provider.dart';
+import '../config/flavor_config.dart';
 import '../models/delivery_assignment.dart';
 
 // Keys moved outside to persist across provider re-evaluations
@@ -75,75 +76,84 @@ final routerProvider = Provider<GoRouter>((ref) {
     ]),
     redirect: (context, state) {
       final isLoggedIn = AuthService.isLoggedIn;
-      final isLoggingIn = state.matchedLocation == '/login';
-      final isRegistering = state.matchedLocation == '/register';
-      final isAdminRoute = state.matchedLocation.startsWith('/admin');
-      final isRiderRoute = state.matchedLocation.startsWith('/rider');
-      final isMaintenanceRoute = state.matchedLocation == '/maintenance';
+      final matchedLocation = state.matchedLocation;
+      final isLoggingIn = matchedLocation == '/login';
+      final isRegistering = matchedLocation == '/register';
+      final isAuthRoute = isLoggingIn || isRegistering || matchedLocation == '/forgot-password';
+      final isRiderRoute = matchedLocation.startsWith('/rider');
+      final isAdminRoute = matchedLocation.startsWith('/admin');
+      final isMaintenanceRoute = matchedLocation == '/maintenance';
 
-      // 1. Check Maintenance Mode (Highest Priority)
+      // 1. Maintenance Mode
       final maintenanceState = ref.read(maintenanceSettingsProvider);
       final isMaintenanceEnabled = maintenanceState.valueOrNull?.enabled ?? false;
 
-      // Check if current user is admin to bypass maintenance
-      final isAdmin = ref.read(isAdminProvider);
-      final isRider = ref.read(isRiderProvider);
+      // Profile and Roles
+      final profileAsync = ref.read(userProfileProvider);
+      final profile = profileAsync.valueOrNull;
+      final isAdmin = profile?.role == 'admin';
+      final isRider = profile?.role == 'rider';
 
       if (isMaintenanceEnabled && !isAdmin) {
-        if (!isMaintenanceRoute && !state.matchedLocation.startsWith('/login')) {
-          return '/maintenance';
-        }
+        if (!isMaintenanceRoute && !isAuthRoute) return '/maintenance';
       } else if (!isMaintenanceEnabled && isMaintenanceRoute) {
         return '/';
       }
 
-      // 2. Security: Protect admin routes
-      final profileAsync = ref.read(userProfileProvider);
-      
-      // If we are on an admin route, we must ensure the user IS an admin
-      if (isAdminRoute) {
-        if (profileAsync.isLoading) return null; // Wait for profile
-        if (!isAdmin) {
-          return isLoggedIn ? '/' : '/login';
+      // 2. Auth protection
+      if (!isLoggedIn) {
+        if (isRiderRoute || isAdminRoute || matchedLocation == '/profile' || matchedLocation == '/checkout') {
+          return '/login';
         }
+        return null;
       }
 
-      // 3. Security: Protect rider routes
-      if (isRiderRoute) {
+      // 3. Security: Role protection
+      if (isLoggedIn && FlavorConfig.isCustomer && isRider) {
         if (profileAsync.isLoading) return null;
-        if (!isRider && !isAdmin) { // Admins can view rider routes for debugging
-          return isLoggedIn ? '/' : '/login';
-        }
+        AuthService.signOut();
+        return '/login?error=rider_not_allowed';
       }
 
-      // 4. Protected customer routes
-      if (!isLoggedIn && (state.matchedLocation == '/checkout' || state.matchedLocation == '/profile')) {
-        return '/login';
+      if (isAdminRoute && !isAdmin) {
+        if (profileAsync.isLoading) return null;
+        return '/';
       }
 
-      // 5. Post-Login Role-Based Redirection (Only on explicit login/register)
-      if (isLoggedIn && (isLoggingIn || isRegistering)) {
-        if (profileAsync.isLoading) {
-          debugPrint('Router: Profile loading during login...');
-          return null;
-        }
-        
-        final profile = profileAsync.valueOrNull;
-        final role = profile?.role;
-        debugPrint('Router: User role during login: $role');
+      if (isRiderRoute && !isRider && !isAdmin) {
+        if (profileAsync.isLoading) return null;
+        return '/';
+      }
 
-        if (role == 'admin') return '/admin/dashboard';
-        if (role == 'rider') {
-          if (profile?.supabaseId != null) {
-            ref.read(notificationServiceProvider).initialize(profile!.supabaseId!);
-          }
+      // 4. Already logged in redirect from auth routes
+      if (isAuthRoute) {
+        if (profileAsync.isLoading) return null;
+        if (isAdmin) return '/admin/dashboard';
+        if (isRider) return '/rider/home';
+        return '/';
+      }
+
+      // 5. Protect Customer routes from Riders
+      if (isRider && !isRiderRoute && !isAuthRoute && !isMaintenanceRoute) {
+        // Exclude static pages if riders should see them (terms, privacy, etc.)
+        final isStaticRoute = matchedLocation == '/terms' || 
+                             matchedLocation == '/privacy' || 
+                             matchedLocation == '/shipping' || 
+                             matchedLocation == '/returns';
+        if (!isStaticRoute) {
           return '/rider/home';
         }
-        if (role == 'customer') return '/';
+      }
+
+      // 6. Root Redirect (Initial entry)
+      if (matchedLocation == '/') {
+        if (isAdmin) return '/admin/dashboard';
+        if (isRider) return '/rider/home';
       }
 
       return null;
     },
+
     routes: [
       GoRoute(
         path: '/maintenance',
@@ -213,6 +223,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const StickerGeneratorScreen(),
           ),
           GoRoute(
+            name: 'admin-settings',
+            path: '/admin/settings',
+            builder: (context, state) => const AdminSettingsScreen(),
+          ),
+          GoRoute(
             name: 'admin-banners',
             path: '/admin/banners',
             builder: (context, state) => const BannerManagerScreen(),
@@ -243,11 +258,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             builder: (context, state) => const MessageListScreen(),
           ),
           GoRoute(
-            name: 'admin-settings',
-            path: '/admin/settings',
-            builder: (context, state) => const SettingsScreen(),
-          ),
-          GoRoute(
             name: 'admin-riders',
             path: '/admin/riders',
             builder: (context, state) => const RiderListScreen(),
@@ -267,13 +277,21 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
+      GoRoute(
+        path: '/checkout',
+        builder: (context, state) => const CheckoutScreen(),
+      ),
       // Shell route wraps all public pages with responsive scaffold
       ShellRoute(
         navigatorKey: shellNavigatorKey,
         builder: (context, state, child) {
-          return ResponsiveScaffold(child: child);
+          return ResponsiveScaffold(state: state, child: child);
         },
         routes: [
+          GoRoute(
+            path: '/home',
+            redirect: (context, state) => '/',
+          ),
           GoRoute(
             path: '/',
             pageBuilder: (context, state) => _buildPageTransition(
@@ -306,10 +324,6 @@ final routerProvider = Provider<GoRouter>((ref) {
             ),
           ),
           GoRoute(
-            path: '/checkout',
-            builder: (context, state) => const CheckoutScreen(),
-          ),
-          GoRoute(
             path: '/blog',
             builder: (context, state) => const BlogListScreen(),
           ),
@@ -323,6 +337,14 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/contact',
             builder: (context, state) => const ContactScreen(),
+          ),
+          // Local SEO: Neighborhood delivery landing pages
+          GoRoute(
+            path: '/delivery/:area',
+            builder: (context, state) {
+              final area = state.pathParameters['area']!;
+              return DeliveryAreaScreen(area: area);
+            },
           ),
           GoRoute(
             path: '/profile',
@@ -437,42 +459,53 @@ final routerProvider = Provider<GoRouter>((ref) {
               content: StaticContent.returns,
             ),
           ),
+          GoRoute(
+            path: '/rider',
+            redirect: (context, state) {
+              if (state.matchedLocation == '/rider') return '/rider/home';
+              return null;
+            },
+          ),
+          GoRoute(
+            name: 'rider-home',
+            path: '/rider/home',
+            builder: (context, state) => const RiderHomeScreen(),
+          ),
+          GoRoute(
+            name: 'rider-order-detail',
+            path: '/rider/orders/:id',
+            builder: (context, state) {
+              final assignment = state.extra as DeliveryAssignment?;
+              final id = state.pathParameters['id'];
+              return rider.OrderDetailScreen(
+                assignment: assignment,
+                orderId: id,
+              );
+            },
+          ),
+          GoRoute(
+            name: 'rider-navigation',
+            path: '/rider/navigate/:id',
+            builder: (context, state) {
+              final assignment = state.extra as DeliveryAssignment?;
+              final id = state.pathParameters['id'];
+              return NavigationScreen(
+                assignment: assignment,
+                orderId: id,
+              );
+            },
+          ),
+          GoRoute(
+            name: 'rider-earnings',
+            path: '/rider/earnings',
+            builder: (context, state) => const EarningsScreen(),
+          ),
+          GoRoute(
+            name: 'rider-profile',
+            path: '/rider/profile',
+            builder: (context, state) => const RiderProfileScreen(),
+          ),
         ],
-      ),
-      // Rider routes
-      GoRoute(
-        path: '/rider',
-        redirect: (context, state) {
-          // Avoid double slash issues on web by checking current location
-          if (state.matchedLocation == '/rider') return '/rider/home';
-          return null;
-        },
-      ),
-      GoRoute(
-        name: 'rider-home',
-        path: '/rider/home',
-        builder: (context, state) => const RiderHomeScreen(),
-      ),
-      GoRoute(
-        name: 'rider-order-detail',
-        path: '/rider/orders/:id',
-        builder: (context, state) {
-          final assignment = state.extra as DeliveryAssignment;
-          return rider.OrderDetailScreen(assignment: assignment);
-        },
-      ),
-      GoRoute(
-        name: 'rider-navigation',
-        path: '/rider/navigate/:id',
-        builder: (context, state) {
-          final assignment = state.extra as DeliveryAssignment;
-          return NavigationScreen(assignment: assignment);
-        },
-      ),
-      GoRoute(
-        name: 'rider-earnings',
-        path: '/rider/earnings',
-        builder: (context, state) => const EarningsScreen(),
       ),
     ],
   );
@@ -509,11 +542,3 @@ class _ProviderListenable extends ChangeNotifier {
   }
 }
 
-// Extension to convert Stream/AsyncValue to Listenable for GoRouter
-extension AuthStreamExtension on Stream<AuthState> {
-  Listenable asRefreshListenable() {
-    final notifier = ValueNotifier<AuthState?>(null);
-    listen((state) => notifier.value = state);
-    return notifier;
-  }
-}

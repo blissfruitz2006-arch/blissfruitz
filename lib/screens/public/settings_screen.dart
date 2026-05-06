@@ -340,3 +340,4 @@ class _PublicSettingsScreenState extends ConsumerState<PublicSettingsScreen> {
     );
   }
 }
+

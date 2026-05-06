@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:go_router/go_router.dart';
 import '../../../config/theme.dart';
 import '../../../models/order.dart';
 import '../../../services/admin_service.dart';
+import '../../../services/order_service.dart';
 import '../../../providers/admin_provider.dart';
 import '../../../services/invoice_service.dart';
 import '../../../providers/order_provider.dart';
@@ -23,6 +25,35 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   final _locationController = TextEditingController();
   final _adminNotesController = TextEditingController();
   bool _initialized = false;
+  
+  Map<String, dynamic>? _deliveryInfo;
+  bool _isLoadingDelivery = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDeliveryInfo();
+  }
+
+  Future<void> _loadDeliveryInfo() async {
+    final orderId = int.tryParse(widget.orderId);
+    if (orderId == null) {
+      if (mounted) setState(() => _isLoadingDelivery = false);
+      return;
+    }
+    
+    try {
+      final info = await OrderService.getDeliveryInfo(orderId);
+      if (mounted) {
+        setState(() {
+          _deliveryInfo = info;
+          _isLoadingDelivery = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingDelivery = false);
+    }
+  }
 
   @override
   void dispose() {
@@ -388,6 +419,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                         ],
                                       ),
                                     ),
+                                    const SizedBox(height: 24),
+                                    AdminGlassCard(
+                                      padding: EdgeInsets.all(cardPadding),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          const SectionHeader(title: 'Delivery & Rider'),
+                                          _buildDeliveryAndRider(order),
+                                        ],
+                                      ),
+                                    ),
                                     if (order.orderStatus == 'delivered' && order.deliveredAt != null) ...[
                                       const SizedBox(height: 24),
                                       _buildReturnWindowCard(order),
@@ -476,6 +518,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                                   ],
                                 ),
                               ),
+                              const SizedBox(height: 24),
+                              AdminGlassCard(
+                                padding: EdgeInsets.all(cardPadding),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const SectionHeader(title: 'Delivery & Rider'),
+                                    _buildDeliveryAndRider(order),
+                                  ],
+                                ),
+                              ),
                               if (order.orderStatus == 'delivered' && order.deliveredAt != null) ...[
                                 const SizedBox(height: 24),
                                 _buildReturnWindowCard(order),
@@ -518,12 +571,15 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Center(
-                        child: Text(
-                          item.quantity.toString(),
-                          style: GoogleFonts.outfit(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16,
-                            color: AppTheme.primary,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            item.quantity.toString(),
+                            style: GoogleFonts.outfit(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 16,
+                              color: AppTheme.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -603,13 +659,17 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           ),
           const SizedBox(width: 12),
           Flexible(
-            child: Text(
-              value,
-              textAlign: TextAlign.right,
-              style: GoogleFonts.outfit(
-                fontSize: fontSize,
-                fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
-                color: color ?? AppTheme.onSurface,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Text(
+                value,
+                textAlign: TextAlign.right,
+                style: GoogleFonts.outfit(
+                  fontSize: fontSize,
+                  fontWeight: isBold ? FontWeight.w800 : FontWeight.w600,
+                  color: color ?? AppTheme.onSurface,
+                ),
               ),
             ),
           ),
@@ -748,6 +808,145 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
     );
   }
 
+  Widget _buildDeliveryAndRider(Order order) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (_isLoadingDelivery)
+          const Center(child: Padding(padding: EdgeInsets.all(16.0), child: CircularProgressIndicator()))
+        else if (_deliveryInfo != null) ...[
+          _buildInfoItem('Rider Name', _deliveryInfo!['rider_name'] ?? 'Unknown', valueColor: AppTheme.primary),
+          _buildInfoItem('Phone', _deliveryInfo!['rider_phone'] ?? 'N/A'),
+          if (_deliveryInfo!['status'] != null)
+            _buildInfoItem('Delivery Status', _deliveryInfo!['status'].toString().toUpperCase()),
+          if (_deliveryInfo!['proof_image_url'] != null && _deliveryInfo!['proof_image_url'].toString().isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.photo_library_outlined, size: 16, color: AppTheme.outline),
+                const SizedBox(width: 8),
+                Text('Delivery Proof', style: GoogleFonts.outfit(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.outline)),
+              ],
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () {
+                // Show full image dialog
+                showDialog(
+                  context: context,
+                  builder: (context) => Dialog(
+                    backgroundColor: Colors.transparent,
+                    insetPadding: const EdgeInsets.all(16),
+                    child: Stack(
+                      alignment: Alignment.topRight,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(16),
+                          child: Image.network(
+                            AdminService.getPublicUrl(_deliveryInfo!['proof_image_url']),
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppTheme.outline.withValues(alpha: 0.2)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Image.network(
+                    AdminService.getPublicUrl(_deliveryInfo!['proof_image_url']),
+                    width: double.infinity,
+                    height: 250,
+                    fit: BoxFit.cover,
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        height: 250,
+                        color: AppTheme.surfaceContainerLow,
+                        child: const Center(child: CircularProgressIndicator()),
+                      );
+                    },
+                    errorBuilder: (context, error, stackTrace) {
+                      return Container(
+                        width: double.infinity,
+                        height: 250,
+                        color: Colors.grey.shade100,
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 48),
+                            const SizedBox(height: 12),
+                            Text('Image failed to load', style: GoogleFonts.beVietnamPro(color: Colors.grey, fontSize: 13)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ] else ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.info_outline, color: Colors.grey),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'No rider has been assigned to this order yet.',
+                    style: GoogleFonts.beVietnamPro(fontSize: 13, color: Colors.grey.shade700),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+        const SizedBox(height: 20),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: () => context.push('/admin/riders/assign/${order.id}'),
+            icon: const Icon(Icons.person_add_alt_1_outlined),
+            label: Text(
+              _deliveryInfo != null || order.riderId != null ? 'CHANGE RIDER' : 'ASSIGN RIDER',
+              style: GoogleFonts.outfit(fontWeight: FontWeight.w700),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              side: const BorderSide(color: AppTheme.primary),
+              foregroundColor: AppTheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildActions(Order order) {
     return Column(
       children: [
@@ -757,12 +956,16 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             labelText: 'Update Order Status',
             labelStyle: GoogleFonts.outfit(fontWeight: FontWeight.w600),
             floatingLabelBehavior: FloatingLabelBehavior.always,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Theme.of(context).cardColor,
           ),
           items: const [
             DropdownMenuItem(value: 'pending', child: Text('Pending')),
             DropdownMenuItem(value: 'confirmed', child: Text('Confirmed')),
             DropdownMenuItem(value: 'processing', child: Text('Processing')),
             DropdownMenuItem(value: 'shipped', child: Text('Shipped')),
+            DropdownMenuItem(value: 'out_for_delivery', child: Text('Out for Delivery')),
             DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
             DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
             DropdownMenuItem(value: 'failed', child: Text('Failed')),
@@ -786,9 +989,12 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
           controller: _adminNotesController,
           maxLines: 3,
           style: GoogleFonts.beVietnamPro(fontSize: 14),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Internal Notes / Customer Feedback', 
             hintText: 'Provide reason for approval/rejection...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Theme.of(context).cardColor,
           ),
         ),
         if (order.orderStatus == 'return_requested' || order.orderStatus == 'replacement_requested') ...[
@@ -799,13 +1005,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _handleRequestResponse(order.id!, order.orderStatus.contains('return') ? 'return_approved' : 'replacement_approved'),
                   icon: const Icon(Icons.check_circle_outline, size: 20),
-                  label: FittedBox(
+                  label: const FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: const Text('APPROVE'),
+                    child: Text('APPROVE'),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF10B981),
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -814,13 +1021,14 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
                 child: ElevatedButton.icon(
                   onPressed: () => _handleRequestResponse(order.id!, order.orderStatus.contains('return') ? 'return_rejected' : 'replacement_rejected'),
                   icon: const Icon(Icons.cancel_outlined, size: 20),
-                  label: FittedBox(
+                  label: const FittedBox(
                     fit: BoxFit.scaleDown,
-                    child: const Text('REJECT'),
+                    child: Text('REJECT'),
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFEF4444),
                     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -834,18 +1042,24 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
         TextField(
           controller: _trackingController,
           style: GoogleFonts.beVietnamPro(fontSize: 14),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Tracking Number',
             hintText: 'Enter courier tracking ID',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Theme.of(context).cardColor,
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _locationController,
           style: GoogleFonts.beVietnamPro(fontSize: 14),
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Live Tracking / Map Link',
             hintText: 'https://...',
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: Theme.of(context).cardColor,
           ),
         ),
         const SizedBox(height: 24),
@@ -855,6 +1069,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
             onPressed: () => _updateTracking(order.id!),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 18),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
             child: const Text('SAVE FULFILLMENT INFO'),
           ),
@@ -890,7 +1105,7 @@ class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
   }
 
 
-  Widget _buildCustomerStats(int? userId) {
+  Widget _buildCustomerStats(String? userId) {
     if (userId == null) return const SizedBox.shrink();
     
     return FutureBuilder<Map<String, dynamic>>(

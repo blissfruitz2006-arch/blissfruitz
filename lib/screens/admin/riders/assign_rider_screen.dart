@@ -27,6 +27,12 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
   bool _isAssigning = false;
 
   @override
+  void initState() {
+    super.initState();
+    _selectedZone = 'All Zones';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final ordersAsync = ref.watch(adminOrdersProvider);
     final order = ordersAsync.when(
@@ -42,7 +48,7 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
     );
 
     // Get available riders for the selected zone
-    final ridersAsync = ref.watch(availableRidersProvider(_selectedZone ?? order?.shippingCity ?? ''));
+    final ridersAsync = ref.watch(availableRidersProvider(_selectedZone ?? 'All Zones'));
 
     return Scaffold(
       appBar: AppBar(
@@ -144,19 +150,11 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
           ),
           Builder(
             builder: (context) {
-              final city = order.shippingCity ?? 'Mumbai North';
-              final zones = ['Mumbai North', 'Mumbai South', 'Thane', 'Navi Mumbai', 'Pune'];
+              final zones = ['All Zones', 'Mumbai North', 'Mumbai South', 'Thane', 'Navi Mumbai', 'Pune'];
               
-              // Find the best match for the current value
-              String? dropdownValue;
-              if (_selectedZone != null && zones.contains(_selectedZone)) {
-                dropdownValue = _selectedZone;
-              } else {
-                // Try to match the city (case-insensitive)
-                dropdownValue = zones.firstWhere(
-                  (z) => z.toLowerCase() == city.toLowerCase(),
-                  orElse: () => zones.first,
-                );
+              String dropdownValue = _selectedZone ?? 'All Zones';
+              if (!zones.contains(dropdownValue)) {
+                dropdownValue = 'All Zones';
               }
 
               return DropdownButton<String>(
@@ -340,3 +338,4 @@ class _AssignRiderScreenState extends ConsumerState<AssignRiderScreen> {
     }
   }
 }
+

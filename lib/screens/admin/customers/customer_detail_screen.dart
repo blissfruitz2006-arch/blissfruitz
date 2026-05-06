@@ -11,53 +11,74 @@ import '../orders/order_detail_screen.dart';
 import '../components/admin_common_widgets.dart';
 
 class CustomerDetailScreen extends ConsumerStatefulWidget {
-  final Map<String, dynamic> customer;
+  final Map<String, dynamic>? customer;
+  final String? userId;
 
-  const CustomerDetailScreen({super.key, required this.customer});
+  const CustomerDetailScreen({super.key, this.customer, this.userId});
 
   @override
   ConsumerState<CustomerDetailScreen> createState() => _CustomerDetailScreenState();
 }
 
 class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
-  late Map<String, dynamic> _currentCustomer;
+  Map<String, dynamic>? _currentCustomer;
   late Future<Map<String, dynamic>> _statsFuture;
   late Future<List<Order>> _ordersFuture;
   final TextEditingController _notesController = TextEditingController();
   bool _isSavingNotes = false;
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _currentCustomer = widget.customer;
-    _notesController.text = _currentCustomer['adminNotes'] ?? '';
-    _loadData();
+    if (widget.customer != null) {
+      _currentCustomer = widget.customer;
+      _notesController.text = _currentCustomer?['adminNotes'] ?? '';
+      _loadData();
+    } else if (widget.userId != null) {
+      _fetchCustomerById();
+    }
+  }
+
+  Future<void> _fetchCustomerById() async {
+    setState(() => _isLoading = true);
+    try {
+      final customers = await ref.read(adminCustomersProvider.future);
+      final customer = customers.firstWhere(
+        (c) => c['supabaseId'].toString() == widget.userId,
+        orElse: () => throw Exception('Customer not found'),
+      );
+      setState(() {
+        _currentCustomer = customer;
+        _notesController.text = _currentCustomer?['adminNotes'] ?? '';
+        _isLoading = false;
+      });
+      _loadData();
+    } catch (e) {
+      debugPrint('Error fetching customer: $e');
+      setState(() => _isLoading = false);
+    }
   }
 
   void _loadData() {
-    final supabaseId = _currentCustomer['supabaseId']?.toString() ?? '';
-    final rawId = _currentCustomer['id'];
-    final userId = rawId is int ? rawId : int.tryParse(rawId?.toString() ?? '') ?? 0;
-    
-    _statsFuture = AdminService.getUserStats(userId);
+    if (_currentCustomer == null) return;
+    final supabaseId = _currentCustomer!['supabaseId']?.toString() ?? '';
+    _statsFuture = AdminService.getUserStats(supabaseId);
     _ordersFuture = _fetchUserOrders(supabaseId);
   }
 
   Future<List<Order>> _fetchUserOrders(String supabaseId) async {
-    final rawId = _currentCustomer['id'];
-    if (rawId == null) return [];
-    final userId = rawId is int ? rawId : int.tryParse(rawId.toString()) ?? 0;
-    if (userId == 0) return [];
-    return AdminService.getUserOrders(userId);
+    if (supabaseId.isEmpty) return [];
+    return AdminService.getUserOrders(supabaseId);
   }
 
   Future<void> _toggleStatus() async {
-    final newStatus = !(_currentCustomer['isActive'] ?? true);
+    final newStatus = !(_currentCustomer!['isActive'] ?? true);
     try {
-      await AdminService.toggleUserStatus(_currentCustomer['supabaseId'], newStatus);
+      await AdminService.toggleUserStatus(_currentCustomer!['supabaseId'], newStatus);
       ref.invalidate(adminCustomersProvider);
       setState(() {
-        _currentCustomer['isActive'] = newStatus;
+        _currentCustomer!['isActive'] = newStatus;
       });
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -99,10 +120,10 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await AdminService.updateUserRole(_currentCustomer['supabaseId'], newRole);
+        await AdminService.updateUserRole(_currentCustomer!['supabaseId'], newRole);
         ref.invalidate(adminCustomersProvider);
         setState(() {
-          _currentCustomer['role'] = newRole;
+          _currentCustomer!['role'] = newRole;
         });
       } catch (e) {
         if (mounted) {
@@ -117,7 +138,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
   Future<void> _saveNotes() async {
     setState(() => _isSavingNotes = true);
     try {
-      await AdminService.updateAdminNotes(_currentCustomer['supabaseId'], _notesController.text);
+      await AdminService.updateAdminNotes(_currentCustomer!['supabaseId'], _notesController.text);
       ref.invalidate(adminCustomersProvider);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -137,17 +158,23 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+    if (_currentCustomer == null) {
+      return const Scaffold(body: Center(child: Text('Customer not found')));
+    }
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final name = _currentCustomer['fullName']?.toString() ?? 'Unknown User';
-    final email = _currentCustomer['email']?.toString() ?? 'No Email';
-    final phone = _currentCustomer['phone']?.toString() ?? 'No Phone';
-    final role = (_currentCustomer['role']?.toString() ?? 'customer').toUpperCase();
-    final isActive = _currentCustomer['isActive'] ?? true;
+    final name = _currentCustomer!['fullName']?.toString() ?? 'Unknown User';
+    final email = _currentCustomer!['email']?.toString() ?? 'No Email';
+    final phone = _currentCustomer!['phone']?.toString() ?? 'No Phone';
+    final role = (_currentCustomer!['role']?.toString() ?? 'customer').toUpperCase();
+    final isActive = _currentCustomer!['isActive'] ?? true;
     
     DateTime? createdAt;
     try {
-      if (_currentCustomer['createdAt'] != null) {
-        createdAt = DateTime.parse(_currentCustomer['createdAt'].toString());
+      if (_currentCustomer!['createdAt'] != null) {
+        createdAt = DateTime.parse(_currentCustomer!['createdAt'].toString());
       }
     } catch (_) {}
 
@@ -320,7 +347,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                   Divider(height: 1, color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.05)),
                   _buildInfoRow(
                     'Primary Address', 
-                    _currentCustomer['address'] ?? 'No address provided', 
+                    _currentCustomer!['address'] ?? 'No address provided', 
                     Icons.location_on_outlined,
                     isDark,
                   ),
@@ -332,7 +359,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
             // Admin Notes
             SectionHeader(
               title: 'Internal Admin Notes',
-              trailing: (_notesController.text != (_currentCustomer['adminNotes'] ?? ''))
+              trailing: (_notesController.text != (_currentCustomer!['adminNotes'] ?? ''))
                 ? TextButton.icon(
                     onPressed: _isSavingNotes ? null : _saveNotes,
                     icon: _isSavingNotes 
@@ -363,7 +390,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
             SectionHeader(
               title: 'Order History',
               trailing: TextButton.icon(
-                onPressed: () => setState(() => _ordersFuture = _fetchUserOrders(_currentCustomer['supabaseId'])),
+                onPressed: () => setState(() => _ordersFuture = _fetchUserOrders(_currentCustomer!['supabaseId'])),
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: const Text('Refresh'),
               ),
@@ -494,7 +521,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: _ManagementButton(
-                    onTap: () => _changeRole(_currentCustomer['role']),
+                    onTap: () => _changeRole(_currentCustomer!['role']),
                     icon: Icons.admin_panel_settings_outlined,
                     label: role == 'ADMIN' ? 'Demote to User' : 'Make Admin',
                     color: AppTheme.tertiary,
@@ -546,7 +573,7 @@ class _CustomerDetailScreenState extends ConsumerState<CustomerDetailScreen> {
 
     if (confirmed == true) {
       try {
-        await AdminService.deleteUserAccount(_currentCustomer['supabaseId']);
+        await AdminService.deleteUserAccount(_currentCustomer!['supabaseId']);
         if (mounted) {
           ref.invalidate(adminCustomersProvider);
           Navigator.pop(context);
@@ -720,4 +747,5 @@ class _ManagementButton extends StatelessWidget {
     );
   }
 }
+
 

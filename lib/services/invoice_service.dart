@@ -5,7 +5,6 @@ import 'package:printing/printing.dart';
 import 'package:intl/intl.dart';
 import '../models/order.dart';
 import '../models/settings.dart';
-import '../services/settings_service.dart';
 
 class InvoiceService {
   static final DateFormat _dateFormat = DateFormat('dd MMM yyyy');
@@ -82,7 +81,7 @@ class InvoiceService {
 
   static Future<pw.Document> generateInvoice(Order order) async {
     final pdf = pw.Document();
-    final settings = await SettingsService.getGeneralSettings();
+    const settings = GeneralSettings();
     bool useFallbackFont = false;
     
     pw.Font? font;
@@ -135,7 +134,7 @@ class InvoiceService {
 
   static Future<pw.Document> generateShippingLabel(Order order) async {
     final pdf = pw.Document();
-    final settings = await SettingsService.getGeneralSettings();
+    const settings = GeneralSettings();
     
     pw.Font? font;
     pw.Font? boldFont;

@@ -180,21 +180,43 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                           validator: (v) => v!.isEmpty ? 'Slug is required' : null,
                         ),
                         const SizedBox(height: 24),
-                        categoriesAsync.when(
-                          data: (categories) => DropdownButtonFormField<int>(
-                            style: GoogleFonts.beVietnamPro(fontSize: 16, color: AppTheme.onSurface),
-                            decoration: _inputDecoration('Category', Icons.category_outlined),
-                            initialValue: categories.any((cat) => cat.id == _selectedCategoryId) 
-                              ? _selectedCategoryId 
-                              : null,
-                            items: categories.map((cat) => DropdownMenuItem(
-                              value: cat.id,
-                              child: Text(cat.name),
-                            )).toList(),
-                            onChanged: (val) => setState(() => _selectedCategoryId = val),
-                          ),
-                          loading: () => const LinearProgressIndicator(),
-                          error: (e, s) => Text('Error loading categories', style: TextStyle(color: AppTheme.error)),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Expanded(
+                              child: categoriesAsync.when(
+                                data: (categories) => DropdownButtonFormField<int>(
+                                  style: GoogleFonts.beVietnamPro(fontSize: 16, color: AppTheme.onSurface),
+                                  decoration: _inputDecoration('Category', Icons.category_outlined),
+                                  initialValue: categories.any((cat) => cat.id == _selectedCategoryId) 
+                                    ? _selectedCategoryId 
+                                    : null,
+                                  items: categories.map((cat) => DropdownMenuItem(
+                                    value: cat.id,
+                                    child: Text(cat.name),
+                                  )).toList(),
+                                  onChanged: (val) => setState(() => _selectedCategoryId = val),
+                                ),
+                                loading: () => const LinearProgressIndicator(),
+                                error: (e, s) => Text('Error loading categories', style: TextStyle(color: AppTheme.error)),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Container(
+                              height: 56,
+                              width: 56,
+                              decoration: BoxDecoration(
+                                color: AppTheme.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: AppTheme.primary.withValues(alpha: 0.3)),
+                              ),
+                              child: IconButton(
+                                icon: const Icon(Icons.add_rounded, color: AppTheme.primary, size: 28),
+                                onPressed: _showAddCategoryDialog,
+                                tooltip: 'Quick Add Category',
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -240,6 +262,13 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
                                 style: GoogleFonts.beVietnamPro(fontSize: 16, fontWeight: FontWeight.bold),
                                 decoration: _inputDecoration('Stocks', Icons.inventory_2_outlined),
                                 keyboardType: TextInputType.number,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) return null;
+                                  final val = int.tryParse(v);
+                                  if (val == null) return 'Enter a valid number';
+                                  if (val < 0) return 'Stock cannot be negative';
+                                  return null;
+                                },
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -407,6 +436,88 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     );
   }
 
+  Future<void> _showAddCategoryDialog() async {
+    final nameController = TextEditingController();
+    
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          bool isSaving = false;
+          return AlertDialog(
+            title: Text('Quick Add Category', style: GoogleFonts.outfit(fontWeight: FontWeight.bold)),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  autofocus: true,
+                  decoration: _inputDecoration('Category Name', Icons.category_rounded),
+                ),
+                if (isSaving) ...[
+                  const SizedBox(height: 16),
+                  const LinearProgressIndicator(),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: isSaving ? null : () => Navigator.pop(context),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primary,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: isSaving ? null : () async {
+                  if (nameController.text.trim().isEmpty) return;
+                  
+                  setDialogState(() => isSaving = true);
+                  try {
+                    final name = nameController.text.trim();
+                    final slug = name.toLowerCase().replaceAll(' ', '-').replaceAll(RegExp(r'[^a-z0-9\-]+'), '');
+                    
+                    final newCategory = await AdminService.createCategory({
+                      'name': name,
+                      'slug': slug,
+                      'active': true,
+                    });
+                    
+                    if (context.mounted) {
+                      Navigator.of(context).pop(newCategory);
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error creating category: $e'))
+                      );
+                    }
+                  } finally {
+                    setDialogState(() => isSaving = false);
+                  }
+                },
+                child: const Text('Create'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+
+    nameController.dispose();
+
+    if (result != null && mounted) {
+      ref.invalidate(categoriesProvider);
+      setState(() {
+        _selectedCategoryId = result['id'];
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Category created and selected!'))
+      );
+    }
+  }
 
   Widget _buildToggleSwitch(String title, String subtitle, bool value, Function(bool) onChanged) {
     return Container(
@@ -510,3 +621,4 @@ class _ProductFormScreenState extends ConsumerState<ProductFormScreen> {
     }
   }
 }
+

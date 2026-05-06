@@ -34,6 +34,8 @@ class PaymentSettings {
   final bool codEnabled;
   final bool razorpayEnabled;
   final String? razorpayKeyId;
+  // NOTE: razorpayKeySecret intentionally excluded from client model.
+  // Payment verification must happen server-side via Supabase Edge Function.
 
   const PaymentSettings({
     this.currency = 'INR',
@@ -43,10 +45,18 @@ class PaymentSettings {
   });
 
   factory PaymentSettings.fromJson(Map<String, dynamic> json) {
+    bool parseBool(dynamic value, bool defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is bool) return value;
+      if (value is String) return value.toLowerCase() == 'true' || value == '1';
+      if (value is int) return value == 1;
+      return defaultValue;
+    }
+
     return PaymentSettings(
       currency: json['currency'] as String? ?? 'INR',
-      codEnabled: json['cod_enabled'] as bool? ?? true,
-      razorpayEnabled: json['razorpay_enabled'] as bool? ?? false,
+      codEnabled: parseBool(json['cod_enabled'], true),
+      razorpayEnabled: parseBool(json['razorpay_enabled'], false),
       razorpayKeyId: json['razorpay_key_id'] as String?,
     );
   }
@@ -89,8 +99,16 @@ class MaintenanceSettings {
   });
 
   factory MaintenanceSettings.fromJson(Map<String, dynamic> json) {
+    bool parseBool(dynamic value, bool defaultValue) {
+      if (value == null) return defaultValue;
+      if (value is bool) return value;
+      if (value is String) return value.toLowerCase() == 'true' || value == '1';
+      if (value is int) return value == 1;
+      return defaultValue;
+    }
+
     return MaintenanceSettings(
-      enabled: json['enabled'] as bool? ?? false,
+      enabled: parseBool(json['enabled'], false),
       message: json['message'] as String?,
     );
   }

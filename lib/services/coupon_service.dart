@@ -1,4 +1,4 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/foundation.dart';
 import '../config/supabase_config.dart';
 import '../models/coupon.dart';
 
@@ -6,7 +6,7 @@ class CouponService {
   static SupabaseClient get _client => SupabaseConfig.client;
 
   /// Validate and fetch a coupon by code
-  static Future<Coupon?> validateCoupon(String code, {int? userId, String? guestEmail, String? phone}) async {
+  static Future<Coupon?> validateCoupon(String code, {String? userId, String? guestEmail, String? phone}) async {
     final data = await _client
         .from('Coupon')
         .select()
@@ -36,19 +36,27 @@ class CouponService {
   }
 
   /// Check if a user (or guest email/phone) has already used a specific coupon code
-  static Future<bool> isCouponUsedByCustomer(String couponCode, {int? userId, String? guestEmail, String? phone}) async {
+  static Future<bool> isCouponUsedByCustomer(String couponCode, {String? userId, String? guestEmail, String? phone}) async {
+    // Normalize phone for comparison
+    String? cleanPhone = phone?.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone != null && cleanPhone.length > 10) {
+      cleanPhone = cleanPhone.substring(cleanPhone.length - 10);
+    }
+
     var query = _client
         .from('Order')
         .select('id')
         .ilike('couponCode', couponCode.trim())
-        .not('orderStatus', 'eq', 'cancelled');
+        .not('orderStatus', 'in', '("cancelled", "failed")');
 
     List<String> conditions = [];
-    if (userId != null) conditions.add('"userId".eq.$userId');
-    if (guestEmail != null) conditions.add('guestEmail.eq.$guestEmail');
-    if (phone != null && phone.isNotEmpty) {
-      // Clean phone number (remove spaces, etc if needed, but assuming standard format)
-      conditions.add('shippingPhone.eq.$phone');
+    if (userId != null && userId.isNotEmpty) conditions.add('userId.eq.$userId');
+    if (guestEmail != null && guestEmail.isNotEmpty) {
+      conditions.add('guestEmail.ilike.${guestEmail.trim()}');
+    }
+    if (cleanPhone != null && cleanPhone.isNotEmpty) {
+      // Check both the exact phone and any phone ending with these 10 digits
+      conditions.add('shippingPhone.ilike.%$cleanPhone');
     }
 
     if (conditions.isEmpty) return false;
@@ -56,8 +64,11 @@ class CouponService {
     query = query.or(conditions.join(','));
 
     final response = await query.limit(1).maybeSingle();
-
-    return response != null;
+    final used = response != null;
+    if (used) {
+      debugPrint('COUPON_SECURITY: Coupon "$couponCode" already used by customer (ID: $userId, Phone: $cleanPhone)');
+    }
+    return used;
   }
 
   /// Get all active coupons (for display)

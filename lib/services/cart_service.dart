@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import '../config/supabase_config.dart';
 import '../models/cart.dart';
 import '../models/product.dart';
@@ -8,7 +9,11 @@ import '../models/product.dart';
 /// the Supabase Cart/CartLine tables for authenticated users.
 class CartService {
   static const _localCartKey = 'blissfruitz_guest_cart';
-  static final _client = SupabaseConfig.client;
+
+  @visibleForTesting
+  static SupabaseClient? mockClient;
+
+  static SupabaseClient get _client => mockClient ?? SupabaseConfig.client;
 
   // ─── Local Storage (Guest Cart) ───
 
@@ -74,80 +79,80 @@ class CartService {
   // ─── Supabase DB Cart (Logged-in Users) ───
 
   /// Get or create a DB cart for the given user
-  static Future<String> _getOrCreateCartId(int userId) async {
-    // Try to find existing cart
-    final existing = await _client
-        .from('Cart')
-        .select('id')
-        .eq('userId', userId)
-        .maybeSingle();
-
-    if (existing != null) {
-      return existing['id'] as String;
-    }
-
-    // Create new cart
-    final cartId = 'cart_${userId}_${DateTime.now().millisecondsSinceEpoch}';
-    await _client.from('Cart').insert({
-      'id': cartId,
+  static Future<String> _getOrCreateCartId(String userId) async {
+    // We use upsert with onConflict 'userId' to ensure we never create duplicates.
+    // If a cart exists, it returns the existing record. If not, it creates one.
+    // This is safer than checking then inserting which has race conditions.
+    final data = await _client.from('Cart').upsert({
       'userId': userId,
       'updatedAt': DateTime.now().toIso8601String(),
-    });
-    return cartId;
+    }, onConflict: 'userId').select('id').single();
+
+    return data['id'] as String;
   }
 
   /// Sync local cart to Supabase for an authenticated user
-  static Future<void> syncCartToDb(int userId, List<CartItem> items) async {
+  static Future<void> syncCartToDb(String userId, List<CartItem> items) async {
     final cartId = await _getOrCreateCartId(userId);
 
-    // Clear existing cart lines
-    await _client.from('CartLine').delete().eq('cartId', cartId);
+    // Prepare items for JSONB storage
+    final cartJson = items.map((item) => {
+      'productId': item.product.id,
+      'quantity': item.quantity,
+    }).toList();
 
-    // Insert current items
-    if (items.isNotEmpty) {
-      final lines = items.map((item) => {
-            'cartId': cartId,
-            'productId': item.product.id,
-            'quantity': item.quantity,
-          }).toList();
-
-      await _client.from('CartLine').insert(lines);
-    }
-
-    // Update cart timestamp
+    // Update cart items and timestamp
     await _client.from('Cart').update({
+      'items': cartJson,
       'updatedAt': DateTime.now().toIso8601String(),
     }).eq('id', cartId);
   }
 
   /// Load cart from Supabase DB for authenticated user
-  static Future<List<CartItem>> loadCartFromDb(int userId) async {
+  static Future<List<CartItem>> loadCartFromDb(String userId) async {
     final cart = await _client
         .from('Cart')
-        .select('id')
+        .select('*')
         .eq('userId', userId)
         .maybeSingle();
 
-    if (cart == null) return [];
+    if (cart == null || cart['items'] == null) return [];
 
-    final cartId = cart['id'] as String;
-    final lines = await _client
-        .from('CartLine')
-        .select('*, Product(*)')
-        .eq('cartId', cartId);
+    final itemsJson = cart['items'] as List;
+    if (itemsJson.isEmpty) return [];
 
-    return (lines as List).map((line) {
-      final product = Product.fromJson(line['Product']);
+    final productIds = itemsJson.map((i) => i['productId']).toList();
+    
+    // Fetch all products in the cart in one go
+    final productsResponse = await _client
+        .from('Product')
+        .select('*')
+        .inFilter('id', productIds);
+
+    final products = (productsResponse as List)
+        .map((p) => Product.fromJson(p))
+        .toList();
+
+    return itemsJson.map((item) {
+      final product = products.firstWhere(
+        (p) => p.id == item['productId'],
+        orElse: () => Product(
+          id: item['productId'] as int? ?? 0,
+          name: 'Unavailable Product',
+          slug: 'unavailable',
+          price: 0,
+        ),
+      );
       return CartItem(
         product: product,
-        quantity: line['quantity'] as int? ?? 1,
+        quantity: item['quantity'] as int? ?? 1,
       );
     }).toList();
   }
 
   /// Merge local guest cart into the DB cart on login
   static Future<List<CartItem>> mergeCartsOnLogin(
-    int userId,
+    String userId,
     List<CartItem> localItems,
   ) async {
     // Load existing DB cart

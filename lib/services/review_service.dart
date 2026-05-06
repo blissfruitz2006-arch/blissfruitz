@@ -2,7 +2,7 @@ import '../config/supabase_config.dart';
 import '../models/review.dart';
 
 class ReviewService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   /// Get approved reviews for a product
   static Future<List<Review>> getProductReviews(int productId) async {
@@ -19,7 +19,7 @@ class ReviewService {
   /// Submit a new review
   static Future<Review> submitReview({
     required int productId,
-    int? userId,
+    String? userId,
     String? guestName,
     required int rating,
     String? title,
@@ -29,10 +29,10 @@ class ReviewService {
         .from('Review')
         .insert({
           'productId': productId,
-          'userId': ?userId,
-          'guestName': ?guestName,
+          if (userId != null) 'userId': userId,
+          if (guestName != null) 'guestName': guestName,
           'rating': rating,
-          'title': ?title,
+          if (title != null) 'title': title,
           'comment': comment,
           'approved': false, // Requires admin approval
         })
@@ -59,7 +59,7 @@ class ReviewService {
   }
 
   /// Get reviews submitted by a specific user
-  static Future<List<Review>> getUserReviews(int userId) async {
+  static Future<List<Review>> getUserReviews(String userId) async {
     final data = await _client
         .from('Review')
         .select()
@@ -72,7 +72,7 @@ class ReviewService {
   /// Check if user has already reviewed a product
   static Future<bool> hasUserReviewed({
     required int productId,
-    required int userId,
+    required String userId,
   }) async {
     final data = await _client
         .from('Review')

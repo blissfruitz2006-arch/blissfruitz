@@ -10,6 +10,7 @@ import '../../widgets/admin/admin_dialogs.dart';
 import '../../models/order.dart';
 import '../../models/product.dart';
 import '../../providers/delivery_provider.dart';
+import 'components/admin_common_widgets.dart';
 
 class AdminDashboardScreen extends ConsumerWidget {
   const AdminDashboardScreen({super.key});
@@ -25,12 +26,7 @@ class AdminDashboardScreen extends ConsumerWidget {
 
   Widget _buildMainContent(BuildContext context, WidgetRef ref, bool isDesktop) {
     final ordersAsync = ref.watch(filteredAdminOrdersProvider);
-    final allOrdersAsync = ref.watch(adminOrdersProvider);
-    final customersAsync = ref.watch(adminCustomersProvider);
-    final messagesAsync = ref.watch(adminMessagesProvider);
     final productsAsync = ref.watch(adminProductsProvider);
-    final activeRidersCount = ref.watch(activeRiderCountProvider);
-    final outForDeliveryCount = ref.watch(outForDeliveryCountProvider);
 
     return CustomScrollView(
       slivers: [
@@ -130,7 +126,11 @@ class AdminDashboardScreen extends ConsumerWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               LayoutBuilder(builder: (context, constraints) {
-                final double width = constraints.maxWidth;
+                // Defensive check for infinite width which can happen in some Sliver/LayoutBuilder combinations
+                final double width = constraints.maxWidth.isFinite 
+                    ? constraints.maxWidth 
+                    : MediaQuery.of(context).size.width - (isDesktop ? 280 : 0);
+                    
                 final int crossAxisCount = width > 1200 ? 3 : (width > 800 ? 2 : 1);
                 
                 return GridView.count(
@@ -140,97 +140,19 @@ class AdminDashboardScreen extends ConsumerWidget {
                   mainAxisSpacing: 16,
                   crossAxisSpacing: 16,
                   childAspectRatio: width < 600 ? 1.1 : (width < 900 ? 1.2 : 1.5),
-                  children: [
-                    _buildHeroMetricCard(
-                      context,
-                      'Net Sales',
-                      allOrdersAsync.when(
-                        data: (o) => o.where((e) => e.paymentStatus == 'paid').fold<double>(0.0, (sum, e) => sum + (e.total)),
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      '+12.5% from last month',
-                      Icons.payments_rounded,
-                      const Color(0xFF10B981),
-                      [10, 20, 15, 30, 25, 45, 40],
-                      prefix: '₹',
-                    ),
-                    _buildHeroMetricCard(
-                      context,
-                      'Total Orders',
-                      allOrdersAsync.when(
-                        data: (o) => o.length,
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      '${allOrdersAsync.valueOrNull?.where((e) => e.orderStatus == 'pending').length ?? 0} active processing',
-                      Icons.shopping_bag_rounded,
-                      const Color(0xFF6366F1),
-                      [5, 15, 10, 25, 20, 35, 30],
-                    ),
-                    _buildHeroMetricCard(
-                      context,
-                      'Active Customers',
-                      customersAsync.when(
-                        data: (c) => c.length,
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      'Target: 5k this quarter',
-                      Icons.group_rounded,
-                      const Color(0xFFF59E0B),
-                      [20, 25, 30, 35, 40, 45, 50],
-                    ),
-                    _buildHeroMetricCard(
-                      context,
-                      'Pending Inquiries',
-                      messagesAsync.when(
-                        data: (m) => m.length,
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      'Response rate: 98%',
-                      Icons.chat_bubble_rounded,
-                      const Color(0xFFEC4899),
-                      [30, 20, 25, 15, 10, 5, 2],
-                    ),
-                    _buildHeroMetricCard(
-                      context,
-                      'Active Riders',
-                      activeRidersCount.when(
-                        data: (c) => c,
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      'Available for dispatch',
-                      Icons.delivery_dining_rounded,
-                      const Color(0xFF0EA5E9),
-                      [2, 5, 3, 8, 6, 10, 12],
-                    ),
-                    _buildHeroMetricCard(
-                      context,
-                      'Out for Delivery',
-                      outForDeliveryCount.when(
-                        data: (c) => c,
-                        loading: () => null,
-                        error: (_, _) => null,
-                      ),
-                      'Active tracking links',
-                      Icons.local_shipping_rounded,
-                      const Color(0xFF8B5CF6),
-                      [5, 10, 8, 15, 12, 20, 18],
-                    ),
+                  children: const [
+                    NetSalesMetricCard(),
+                    TotalOrdersMetricCard(),
+                    ActiveCustomersMetricCard(),
+                    PendingInquiriesMetricCard(),
+                    ActiveRidersMetricCard(),
+                    OutForDeliveryMetricCard(),
                   ],
                 );
               }),
 
               const SizedBox(height: 32),
-
-              _StaggeredEntrance(
-                index: 5,
-                child: _buildRevenueAnalytics(context, ref, isDesktop),
-              ),
-
+              const RevenueAnalyticsWidget(),
               const SizedBox(height: 32),
 
               if (isDesktop)
@@ -512,123 +434,8 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRevenueAnalytics(BuildContext context, WidgetRef ref, bool isDesktop) {
-    final ordersAsync = ref.watch(adminOrdersProvider);
 
-    return ordersAsync.when(
-      data: (orders) {
-        final now = DateTime.now();
-        final List<double> revenueData = List.generate(7, (index) {
-          final date = now.subtract(Duration(days: 6 - index));
-          return orders
-              .where((o) => 
-                  o.paymentStatus == 'paid' && 
-                  o.createdAt != null &&
-                  o.createdAt!.day == date.day &&
-                  o.createdAt!.month == date.month &&
-                  o.createdAt!.year == date.year)
-              .fold<double>(0.0, (sum, o) => sum + (o.total));
-        });
 
-        final totalRevenue = revenueData.fold(0.0, (sum, r) => sum + r);
-
-        return _DashboardSection(
-          title: 'Revenue Analytics',
-          icon: Icons.auto_graph_rounded,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '₹${totalRevenue.toStringAsFixed(0)}',
-                        style: GoogleFonts.outfit(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -1,
-                        ),
-                      ),
-                      Text(
-                        'Total revenue from last 7 days',
-                        style: GoogleFonts.beVietnamPro(
-                          fontSize: 12,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  _buildTrendBadge(revenueData),
-                ],
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                height: 200,
-                width: double.infinity,
-                child: CustomPaint(
-                  painter: _RevenueChartPainter(revenueData, AppTheme.primary),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (index) {
-                  final date = now.subtract(Duration(days: 6 - index));
-                  final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-                  final label = dayLabels[(date.weekday - 1) % 7];
-                  
-                  return Text(
-                    label,
-                    style: GoogleFonts.beVietnamPro(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey),
-                  );
-                }),
-              ),
-            ],
-          ),
-        );
-      },
-      loading: () => const SizedBox(height: 300, child: Center(child: CircularProgressIndicator())),
-      error: (_, _) => const SizedBox(height: 300, child: Center(child: Text('Error loading analytics'))),
-    );
-  }
-
-  Widget _buildTrendBadge(List<double> data) {
-    if (data.length < 2) return const SizedBox.shrink();
-    final latest = data.last;
-    final previous = data[data.length - 2];
-    final isUp = latest >= previous;
-    final percent = previous == 0 ? 100 : ((latest - previous) / previous * 100).abs();
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: (isUp ? Colors.green : Colors.red).withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
-            color: isUp ? Colors.green : Colors.red,
-            size: 14,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${percent.toStringAsFixed(1)}%',
-            style: GoogleFonts.outfit(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: isUp ? Colors.green : Colors.red,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildActionChip(BuildContext context, String label, IconData icon, Color color) {
     return Container(
@@ -656,154 +463,6 @@ class AdminDashboardScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHeroMetricCard(BuildContext context, String title, num? value, String subtext, IconData icon, Color color, List<double> points, {String prefix = '', String suffix = ''}) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    
-    return _StaggeredEntrance(
-      index: 0,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(24),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              color.withValues(alpha: isDark ? 0.15 : 0.1),
-              color.withValues(alpha: isDark ? 0.05 : 0.02),
-            ],
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 10),
-            ),
-          ],
-        ),
-        child: GlassCard(
-          padding: const EdgeInsets.all(24),
-          child: Stack(
-            children: [
-              // Decorative background glow
-              Positioned(
-                right: -20,
-                top: -20,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        color.withValues(alpha: 0.2),
-                        color.withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: color.withValues(alpha: 0.2)),
-                        ),
-                        child: Icon(icon, color: color, size: 22),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: (points.last > points[points.length - 2] ? Colors.green : Colors.red).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              points.last > points[points.length - 2] ? Icons.trending_up_rounded : Icons.trending_down_rounded, 
-                              size: 14, 
-                              color: points.last > points[points.length - 2] ? Colors.green : Colors.red
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '8%',
-                              style: GoogleFonts.outfit(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w900,
-                                color: points.last > points[points.length - 2] ? Colors.green : Colors.red,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const Spacer(),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: _AnimatedNumber(
-                      value: value ?? 0,
-                      prefix: prefix,
-                      suffix: suffix,
-                      decimals: prefix == '₹' ? 0 : 0,
-                      style: GoogleFonts.outfit(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.5,
-                        color: isDark ? Colors.white : Colors.black,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    title,
-                    style: GoogleFonts.outfit(
-                      fontSize: 13, 
-                      fontWeight: FontWeight.w800, 
-                      letterSpacing: 0.2,
-                      color: isDark ? Colors.white70 : Colors.black54,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          subtext,
-                          style: GoogleFonts.beVietnamPro(
-                            fontSize: 11, 
-                            fontWeight: FontWeight.w600, 
-                            color: isDark ? Colors.white38 : Colors.grey[600]
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      SizedBox(
-                        width: 60,
-                        height: 25,
-                        child: CustomPaint(
-                          painter: _SparklinePainter(points, color),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
 
   void _showQuickAddMenu(BuildContext context, WidgetRef ref) {
@@ -907,6 +566,138 @@ class AdminDashboardScreen extends ConsumerWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class RevenueAnalyticsWidget extends ConsumerWidget {
+  const RevenueAnalyticsWidget({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final ordersAsync = ref.watch(adminOrdersProvider);
+    final now = DateTime.now();
+    
+    return ordersAsync.when(
+      data: (orders) {
+        final List<double> revenueData = List.generate(7, (index) {
+          final date = now.subtract(Duration(days: 6 - index));
+          return orders
+              .where((o) {
+                final status = o.orderStatus.toLowerCase();
+                return status != 'cancelled' && 
+                       status != 'failed' &&
+                       o.createdAt != null &&
+                       o.createdAt!.day == date.day &&
+                       o.createdAt!.month == date.month &&
+                       o.createdAt!.year == date.year;
+              })
+              .fold<double>(0.0, (sum, o) => sum + (o.total));
+        });
+
+        final totalRevenue = revenueData.fold(0.0, (sum, r) => sum + r);
+
+        return _DashboardSection(
+          title: 'Revenue Analytics',
+          icon: Icons.auto_graph_rounded,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹${totalRevenue.toStringAsFixed(0)}',
+                        style: GoogleFonts.outfit(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -1,
+                        ),
+                      ),
+                      Text(
+                        'Total revenue from last 7 days',
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  _RevenueTrendBadge(data: revenueData),
+                ],
+              ),
+              const SizedBox(height: 32),
+              SizedBox(
+                height: 200,
+                width: double.infinity,
+                child: CustomPaint(
+                  painter: _RevenueChartPainter(revenueData, AppTheme.primary),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: List.generate(7, (index) {
+                  final date = now.subtract(Duration(days: 6 - index));
+                  final dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+                  final label = dayLabels[(date.weekday - 1) % 7];
+                  
+                  return Text(
+                    label,
+                    style: GoogleFonts.beVietnamPro(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.grey),
+                  );
+                }),
+              ),
+            ],
+          ),
+        );
+      },
+      loading: () => const SizedBox(height: 300, child: Center(child: CircularProgressIndicator())),
+      error: (_, _) => const SizedBox(height: 300, child: Center(child: Text('Error loading analytics'))),
+    );
+  }
+}
+
+class _RevenueTrendBadge extends StatelessWidget {
+  final List<double> data;
+  const _RevenueTrendBadge({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    if (data.length < 2) return const SizedBox.shrink();
+    final latest = data.last;
+    final previous = data[data.length - 2];
+    final isUp = latest >= previous;
+    final percent = previous == 0 ? 100 : ((latest - previous) / previous * 100).abs();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: (isUp ? Colors.green : Colors.red).withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            isUp ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+            color: isUp ? Colors.green : Colors.red,
+            size: 14,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${percent.toStringAsFixed(1)}%',
+            style: GoogleFonts.outfit(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: isUp ? Colors.green : Colors.red,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1302,11 +1093,11 @@ class _EmptyStockState extends StatelessWidget {
   }
 }
 
-class _SparklinePainter extends CustomPainter {
+class _MiniChartPainter extends CustomPainter {
   final List<double> data;
   final Color color;
 
-  _SparklinePainter(this.data, this.color);
+  _MiniChartPainter(this.data, this.color);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1471,37 +1262,6 @@ extension ColorBrightness on Color {
   }
 }
 
-class _AnimatedNumber extends StatelessWidget {
-  final num value;
-  final String prefix;
-  final String suffix;
-  final TextStyle style;
-  final int decimals;
-
-  const _AnimatedNumber({
-    required this.value,
-    this.prefix = '',
-    this.suffix = '',
-    required this.style,
-    this.decimals = 0,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween<double>(begin: 0, end: value.toDouble()),
-      duration: const Duration(milliseconds: 1500),
-      curve: Curves.easeOutExpo,
-      builder: (context, animatedValue, child) {
-        return Text(
-          '$prefix${animatedValue.toStringAsFixed(decimals)}$suffix',
-          style: style,
-        );
-      },
-    );
-  }
-}
-
 class _StaggeredEntrance extends StatefulWidget {
   final Widget child;
   final int index;
@@ -1568,4 +1328,229 @@ String _formatTimeAgo(DateTime? dt) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   return '${diff.inDays}d ago';
+}
+
+
+class NetSalesMetricCard extends ConsumerWidget {
+  const NetSalesMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allOrdersAsync = ref.watch(adminOrdersProvider);
+    
+    return _HeroMetricCard(
+      title: 'Net Sales',
+      value: allOrdersAsync.when(
+        data: (o) => o.where((e) {
+          final status = e.orderStatus.toLowerCase();
+          return status != 'cancelled' && status != 'failed';
+        }).fold<double>(0.0, (sum, e) => sum + (e.total)),
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: '+12.5% from last month',
+      icon: Icons.payments_rounded,
+      color: const Color(0xFF10B981),
+      chartData: const [10, 20, 15, 30, 25, 45, 40],
+      prefix: '₹',
+    );
+  }
+}
+
+class TotalOrdersMetricCard extends ConsumerWidget {
+  const TotalOrdersMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final allOrdersAsync = ref.watch(adminOrdersProvider);
+    
+    return _HeroMetricCard(
+      title: 'Total Orders',
+      value: allOrdersAsync.when(
+        data: (o) => o.length,
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: '${allOrdersAsync.valueOrNull?.where((e) => e.orderStatus.toLowerCase() == 'pending').length ?? 0} active processing',
+      icon: Icons.shopping_bag_rounded,
+      color: const Color(0xFF6366F1),
+      chartData: const [5, 15, 10, 25, 20, 35, 30],
+    );
+  }
+}
+
+class ActiveCustomersMetricCard extends ConsumerWidget {
+  const ActiveCustomersMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final customersAsync = ref.watch(adminCustomersProvider);
+    
+    return _HeroMetricCard(
+      title: 'Active Customers',
+      value: customersAsync.when(
+        data: (c) => c.length,
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: 'Target: 5k this quarter',
+      icon: Icons.group_rounded,
+      color: const Color(0xFFF59E0B),
+      chartData: const [20, 25, 30, 35, 40, 45, 50],
+    );
+  }
+}
+
+class PendingInquiriesMetricCard extends ConsumerWidget {
+  const PendingInquiriesMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final messagesAsync = ref.watch(adminMessagesProvider);
+    
+    return _HeroMetricCard(
+      title: 'Pending Inquiries',
+      value: messagesAsync.when(
+        data: (m) => m.length,
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: 'Response rate: 98%',
+      icon: Icons.chat_bubble_rounded,
+      color: const Color(0xFFEC4899),
+      chartData: const [30, 20, 25, 15, 10, 5, 2],
+    );
+  }
+}
+
+class ActiveRidersMetricCard extends ConsumerWidget {
+  const ActiveRidersMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeRidersCount = ref.watch(activeRiderCountProvider);
+    
+    return _HeroMetricCard(
+      title: 'Active Riders',
+      value: activeRidersCount.when(
+        data: (c) => c,
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: 'Available for dispatch',
+      icon: Icons.delivery_dining_rounded,
+      color: const Color(0xFF0EA5E9),
+      chartData: const [2, 5, 3, 8, 6, 10, 12],
+    );
+  }
+}
+
+class OutForDeliveryMetricCard extends ConsumerWidget {
+  const OutForDeliveryMetricCard({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final outForDeliveryCount = ref.watch(outForDeliveryCountProvider);
+    
+    return _HeroMetricCard(
+      title: 'Out for Delivery',
+      value: outForDeliveryCount.when(
+        data: (c) => c,
+        loading: () => null,
+        error: (_, _) => null,
+      ),
+      subtitle: 'Active tracking links',
+      icon: Icons.local_shipping_rounded,
+      color: const Color(0xFF8B5CF6),
+      chartData: const [5, 10, 8, 15, 12, 20, 18],
+    );
+  }
+}
+
+class _HeroMetricCard extends StatelessWidget {
+  final String title;
+  final dynamic value;
+  final String subtitle;
+  final IconData icon;
+  final Color color;
+  final List<double> chartData;
+  final String? prefix;
+
+  const _HeroMetricCard({
+    required this.title,
+    required this.value,
+    required this.subtitle,
+    required this.icon,
+    required this.color,
+    required this.chartData,
+    this.prefix,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AdminGlassCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              SizedBox(
+                width: 60,
+                height: 30,
+                child: CustomPaint(
+                  painter: _MiniChartPainter(chartData, color),
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          Text(
+            title,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white54 : AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 4),
+          if (value == null)
+            const SizedBox(
+              height: 32,
+              width: 32,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )
+          else
+            Text(
+              '${prefix ?? ''}${value is double ? value.toStringAsFixed(0) : value}',
+              style: GoogleFonts.outfit(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -1,
+              ),
+            ),
+          const SizedBox(height: 4),
+          Text(
+            subtitle,
+            style: GoogleFonts.beVietnamPro(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: color,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

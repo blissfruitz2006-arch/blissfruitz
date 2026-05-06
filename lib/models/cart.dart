@@ -46,6 +46,16 @@ class Cart {
 
   double get total => subtotal - discountAmount + shippingAmount;
 
+  Map<String, dynamic> toJson() => {
+        'items': items.map((item) => item.toJson()).toList(),
+        'couponCode': couponCode,
+        'discountAmount': discountAmount,
+        'shippingAmount': shippingAmount,
+        'subtotal': subtotal,
+        'total': total,
+        'totalItems': totalItems,
+      };
+
   Cart copyWith({
     List<CartItem>? items,
     String? couponCode,

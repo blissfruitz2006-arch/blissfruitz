@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -13,7 +12,8 @@ import '../models/user_profile.dart';
 import 'app_image.dart';
 
 class AppNavbar extends ConsumerWidget implements PreferredSizeWidget {
-  const AppNavbar({super.key});
+  final GoRouterState state;
+  const AppNavbar({super.key, required this.state});
 
   @override
   Size get preferredSize => const Size.fromHeight(85);
@@ -26,180 +26,195 @@ class AppNavbar extends ConsumerWidget implements PreferredSizeWidget {
     final generalSettings = ref.watch(generalSettingsProvider);
     final userProfile = ref.watch(userProfileProvider).valueOrNull;
     final isLoggedIn = ref.watch(isLoggedInProvider);
-    final routerState = GoRouterState.of(context);
-    final currentPath = routerState.uri.path;
+    final currentPath = state.uri.path;
     final screenWidth = MediaQuery.of(context).size.width;
     final isDesktop = screenWidth >= 1024;
     final isTablet = screenWidth >= 768 && screenWidth < 1024;
     final isMobile = screenWidth < 768;
 
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-        child: RepaintBoundary(
-          child: Container(
-            height: 85 + MediaQuery.paddingOf(context).top,
-            padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.95 : 0.8),
-              border: Border(
-                bottom: BorderSide(
-                  color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
-                  width: 1,
-                ),
-              ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(
-                isDesktop ? 40 : (screenWidth < 350 ? 12 : 20), 
-                8, 
-                isDesktop ? 40 : (screenWidth < 350 ? 12 : 20), 
-                8
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                    // --- Brand / Logo ---
-                    GestureDetector(
-                      onTap: () => context.go('/'),
-                      child: generalSettings.when(
-                        data: (settings) => Hero(
-                          tag: 'app_logo',
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              if (settings.logo != null && settings.logo!.isNotEmpty) ...[
-                                SizedBox(
-                                  height: 36, // Slightly larger for impact
-                                  child: AppImage(
-                                    path: settings.logo,
-                                    fit: BoxFit.contain,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                              ],
-                              ShaderMask(
-                                shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
-                                child: Text(
-                                  settings.siteName ?? 'BlissFruitz',
-                                  style: GoogleFonts.philosopher(
-                                    fontSize: isDesktop ? 32 : (screenWidth < 280 ? 18 : (screenWidth < 350 ? 22 : 28)),
-                                    fontWeight: FontWeight.w900,
-                                    color: Colors.white, // Color is provided by ShaderMask
-                                    letterSpacing: -0.5,
-                                    height: 1,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        loading: () => _LogoTextPlaceholder(isDesktop: isDesktop),
-                        error: (_, _) => _LogoTextPlaceholder(isDesktop: isDesktop),
-                      ),
-                    ),
-  
-                    if (isDesktop) ...[
-                      const SizedBox(width: 48),
-                      // --- Desktop Navigation Links ---
-                      _DesktopNavLink(
-                        label: 'Home',
-                        active: currentPath == '/',
-                        onTap: () => context.go('/'),
-                      ),
-                      _DesktopNavLink(
-                        label: 'Shop',
-                        active: currentPath.startsWith('/shop'),
-                        onTap: () => context.go('/shop'),
-                      ),
-                      _DesktopNavLink(
-                        label: 'Contact',
-                        active: currentPath == '/contact',
-                        onTap: () => context.go('/contact'),
-                      ),
-                    ],
-  
-                    const Spacer(),
-  
-                    // --- Search Bar (Desktop/Tablet) ---
-                    if (isDesktop || isTablet)
-                      Container(
-                        width: isDesktop ? 280 : 200,
-                        height: 42,
-                        margin: const EdgeInsets.only(right: 20),
-                        decoration: BoxDecoration(
-                          color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
-                          ),
-                        ),
-                        child: TextField(
-                          onSubmitted: (value) {
-                            if (value.isNotEmpty) context.go('/shop?search=$value');
-                          },
-                          style: GoogleFonts.beVietnamPro(
-                            fontSize: 14,
-                            color: Theme.of(context).colorScheme.onSurface,
-                          ),
-                          decoration: InputDecoration(
-                            hintText: 'Search fresh fruits...',
-                            hintStyle: GoogleFonts.beVietnamPro(
-                              fontSize: 13,
-                              color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                            ),
-                            prefixIcon: Icon(
-                              Icons.search_rounded,
-                              size: 20,
-                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
-                            ),
-                            border: InputBorder.none,
-                            isDense: true,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 11),
-                          ),
-                        ),
-                      ),
-  
-                    // --- Actions Row ---
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (!isMobile && !isTablet) ...[
-                          // Cart
-                          _NavbarIconButton(
-                            icon: Icons.shopping_basket_outlined,
-                            onPressed: () => context.go('/cart'),
-                            badgeCount: cart.totalItems,
-                            tooltip: 'Cart',
-                          ),
-                          
-                          const SizedBox(width: 4),
-                        ],
-  
-                        // Theme Toggle
-                        _NavbarIconButton(
-                          icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
-                          onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
-                          tooltip: 'Toggle Theme',
-                        ),
-  
-                        if (!isMobile && !isTablet) ...[
-                          const SizedBox(width: 12),
-  
-                          // Account
-                          if (isLoggedIn)
-                            _ProfileDropdown(userProfile: userProfile)
-                          else
-                            _LoginButton(isDesktop: isDesktop),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
+    return Container(
+      height: 85 + MediaQuery.paddingOf(context).top,
+      padding: EdgeInsets.only(top: MediaQuery.paddingOf(context).top),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface.withValues(alpha: isDark ? 0.98 : 0.95),
+        border: Border(
+          bottom: BorderSide(
+            color: Theme.of(context).colorScheme.outlineVariant.withValues(alpha: 0.2),
+            width: 1,
           ),
         ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          isDesktop ? 40 : (screenWidth < 350 ? 12 : 20), 
+          8, 
+          isDesktop ? 40 : (screenWidth < 350 ? 12 : 20), 
+          8
+        ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                  // --- Brand / Logo ---
+                  GestureDetector(
+                    onTap: () {
+                      if (userProfile?.role == 'rider') {
+                        context.go('/rider/home');
+                      } else if (userProfile?.role == 'admin') {
+                        context.go('/admin/dashboard');
+                      } else {
+                        context.go('/');
+                      }
+                    },
+                    child: generalSettings.when(
+                      data: (settings) => Hero(
+                        tag: 'app_logo',
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (settings.logo != null && settings.logo!.isNotEmpty) ...[
+                              SizedBox(
+                                height: 36, // Slightly larger for impact
+                                child: AppImage(
+                                  path: settings.logo,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            ShaderMask(
+                              shaderCallback: (bounds) => AppTheme.primaryGradient.createShader(bounds),
+                              child: Text(
+                                settings.siteName ?? 'BlissFruitz',
+                                style: GoogleFonts.philosopher(
+                                  fontSize: isDesktop ? 32 : (screenWidth < 280 ? 18 : (screenWidth < 350 ? 22 : 28)),
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white, // Color is provided by ShaderMask
+                                  letterSpacing: -0.5,
+                                  height: 1,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      loading: () => _LogoTextPlaceholder(isDesktop: isDesktop),
+                      error: (_, _) => _LogoTextPlaceholder(isDesktop: isDesktop),
+                    ),
+                  ),
+
+                  if (!isMobile && userProfile?.role != 'rider') ...[
+                    const SizedBox(width: 48),
+                    // --- Desktop Navigation Links ---
+                    _DesktopNavLink(
+                      label: 'Home',
+                      active: currentPath == '/' || currentPath == '/home',
+                      onTap: () => context.go('/'),
+                    ),
+                    _DesktopNavLink(
+                      label: 'Shop',
+                      active: currentPath.startsWith('/shop'),
+                      onTap: () => context.go('/shop'),
+                    ),
+                    _DesktopNavLink(
+                      label: 'Contact',
+                      active: currentPath == '/contact',
+                      onTap: () => context.go('/contact'),
+                    ),
+                  ],
+
+                  if (!isMobile && userProfile?.role == 'rider') ...[
+                    const SizedBox(width: 48),
+                    // --- Desktop Rider Links ---
+                    _DesktopNavLink(
+                      label: 'Dashboard',
+                      active: currentPath == '/rider/home',
+                      onTap: () => context.go('/rider/home'),
+                    ),
+                    _DesktopNavLink(
+                      label: 'Earnings',
+                      active: currentPath == '/rider/earnings',
+                      onTap: () => context.go('/rider/earnings'),
+                    ),
+                  ],
+
+                  const Spacer(),
+
+                  // --- Search Bar (Desktop/Tablet) ---
+                  if (isDesktop || isTablet)
+                    Container(
+                      width: isDesktop ? 280 : 200,
+                      height: 42,
+                      margin: const EdgeInsets.only(right: 20),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).colorScheme.surfaceContainerHigh.withValues(alpha: 0.4),
+                        borderRadius: BorderRadius.circular(22),
+                        border: Border.all(
+                          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+                        ),
+                      ),
+                      child: TextField(
+                        onSubmitted: (value) {
+                          if (value.isNotEmpty) context.go('/shop?search=$value');
+                        },
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 14,
+                          color: Theme.of(context).colorScheme.onSurface,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search fresh fruits...',
+                          hintStyle: GoogleFonts.beVietnamPro(
+                            fontSize: 13,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
+                          prefixIcon: Icon(
+                            Icons.search_rounded,
+                            size: 20,
+                            color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.7),
+                          ),
+                          border: InputBorder.none,
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(vertical: 11),
+                        ),
+                      ),
+                    ),
+
+                  // --- Actions Row ---
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (!isMobile && userProfile?.role != 'rider') ...[
+                        // Cart
+                        _NavbarIconButton(
+                          icon: Icons.shopping_basket_outlined,
+                          onPressed: () => context.go('/cart'),
+                          badgeCount: cart.totalItems,
+                          tooltip: 'Cart',
+                        ),
+                        
+                        const SizedBox(width: 4),
+                      ],
+
+                      // Theme Toggle
+                      _NavbarIconButton(
+                        icon: isDark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                        onPressed: () => ref.read(themeProvider.notifier).toggleTheme(),
+                        tooltip: 'Toggle Theme',
+                      ),
+
+                      if (!isMobile) ...[
+                        const SizedBox(width: 12),
+
+                        // Account
+                        if (isLoggedIn)
+                          _ProfileDropdown(userProfile: userProfile)
+                        else
+                          _LoginButton(isDesktop: isDesktop),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+          ),
       );
   }
 }
@@ -391,6 +406,7 @@ class _ProfileDropdown extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isAdmin = ref.watch(isAdminProvider);
+    final isRider = ref.watch(isRiderProvider);
 
     return PopupMenuButton<String>(
       offset: const Offset(0, 48),
@@ -455,6 +471,14 @@ class _ProfileDropdown extends ConsumerWidget {
             Icons.admin_panel_settings_outlined,
             'Admin Panel',
             '/admin',
+            color: AppTheme.primary,
+          ),
+        if (isRider)
+          _buildPopupItem(
+            context,
+            Icons.delivery_dining_outlined,
+            'Rider Dashboard',
+            '/rider/home',
             color: AppTheme.primary,
           ),
         const PopupMenuDivider(),

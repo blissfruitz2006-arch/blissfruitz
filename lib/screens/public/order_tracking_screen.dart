@@ -20,11 +20,14 @@ class OrderTrackingScreen extends ConsumerStatefulWidget {
 
 class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
   bool _isProcessing = false;
+  Map<String, dynamic>? _deliveryInfo;
+  bool _isLoadingDeliveryInfo = false;
+  int? _lastOrderIdForInfo;
 
   @override
   Widget build(BuildContext context) {
     final orderId = int.tryParse(widget.orderId) ?? 0;
-    final orderAsync = ref.watch(orderDetailsProvider(orderId));
+    final orderAsync = ref.watch(orderDetailsStreamProvider(orderId));
 
     return Title(
       title: 'Track Order | Blissfruitz',
@@ -68,6 +71,10 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _buildOrderSummary(order),
+                  if (order.orderStatus == 'out_for_delivery' || order.orderStatus == 'delivered') ...[
+                    const SizedBox(height: 12),
+                    _buildDeliveryInfoSection(order),
+                  ],
                   const SizedBox(height: 12),
                   if (order.orderStatus == 'cancelled' || 
                       order.paymentStatus == 'refund_pending' || 
@@ -443,6 +450,7 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         {'status': 'pending', 'label': 'Order Placed', 'icon': Icons.assignment_turned_in_outlined},
         {'status': 'confirmed', 'label': 'Confirmed', 'icon': Icons.check_circle_outline},
         {'status': 'shipped', 'label': 'Shipped', 'icon': Icons.local_shipping_outlined},
+        {'status': 'out_for_delivery', 'label': 'Out for Delivery', 'icon': Icons.delivery_dining_rounded},
         {'status': 'delivered', 'label': 'Delivered', 'icon': Icons.home_outlined},
       ];
     }
@@ -565,6 +573,179 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
         }),
       ],
     );
+  }
+
+  Widget _buildDeliveryInfoSection(Order order) {
+    if (_lastOrderIdForInfo != order.id) {
+      _lastOrderIdForInfo = order.id;
+      _fetchDeliveryInfo(order.id!, order.shippingPhone);
+    }
+
+    if (_isLoadingDeliveryInfo) {
+      return Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.indigo.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.indigo.withValues(alpha: 0.1)),
+        ),
+        child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+
+    if (_deliveryInfo == null) return const SizedBox.shrink();
+
+    final proofImageUrl = _deliveryInfo!['proof_image_url'] as String?;
+    final riderName = _deliveryInfo!['rider_name'] ?? 'Assigned Rider';
+    final riderPhone = _deliveryInfo!['rider_phone'];
+    final isDelivered = order.orderStatus == 'delivered';
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.indigo.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.indigo.withValues(alpha: 0.1)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.indigo.withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.delivery_dining_rounded, color: Colors.indigo),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isDelivered ? 'Delivery Proof' : 'Delivery Confirmation',
+                      style: GoogleFonts.outfit(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                        color: Colors.indigo,
+                      ),
+                    ),
+                    Text(
+                      isDelivered 
+                        ? 'Photo taken at the time of delivery.'
+                        : 'Our rider will take a photo of the package at delivery for confirmation.',
+                      style: GoogleFonts.beVietnamPro(
+                        fontSize: 12,
+                        color: AppTheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (proofImageUrl != null) ...[
+            const SizedBox(height: 20),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.network(
+                proofImageUrl,
+                width: double.infinity,
+                height: 200,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  height: 200,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 40),
+                      const SizedBox(height: 8),
+                      Text('Proof photo unavailable', style: GoogleFonts.beVietnamPro(color: Colors.grey, fontSize: 12)),
+                    ],
+                  ),
+                ),
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    height: 200,
+                    width: double.infinity,
+                    color: Colors.grey[100],
+                    child: const Center(child: CircularProgressIndicator(strokeWidth: 2)),
+                  );
+                },
+              ),
+            ),
+          ],
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                child: Text(
+                  riderName.isNotEmpty ? riderName.substring(0, 1).toUpperCase() : 'R',
+                  style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      riderName,
+                      style: GoogleFonts.outfit(fontWeight: FontWeight.w700, fontSize: 14),
+                    ),
+                    Text(
+                      'Delivery Partner',
+                      style: GoogleFonts.beVietnamPro(fontSize: 12, color: AppTheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+              ),
+              if (riderPhone != null && !isDelivered)
+                IconButton(
+                  onPressed: () => _launchURL('tel:$riderPhone'),
+                  icon: const Icon(Icons.phone_in_talk_rounded, color: AppTheme.primary),
+                  style: IconButton.styleFrom(
+                    backgroundColor: AppTheme.primary.withValues(alpha: 0.1),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _fetchDeliveryInfo(int orderId, String? contact) async {
+    if (_isLoadingDeliveryInfo) return;
+    
+    setState(() {
+      _isLoadingDeliveryInfo = true;
+    });
+
+    try {
+      final info = await OrderService.getDeliveryInfo(orderId, contact: contact);
+      if (mounted) {
+        setState(() {
+          _deliveryInfo = info;
+          _isLoadingDeliveryInfo = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoadingDeliveryInfo = false;
+        });
+      }
+    }
   }
 
   Widget _buildTrackingDetails(Order order) {
@@ -844,10 +1025,12 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
           ),
         ],
       ),
-      child: Text(
-        order.statusLabel.toUpperCase(),
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
-        overflow: TextOverflow.ellipsis,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(
+          order.statusLabel.toUpperCase(),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 11),
+        ),
       ),
     );
   }
@@ -948,3 +1131,4 @@ class _OrderTrackingScreenState extends ConsumerState<OrderTrackingScreen> {
     }
   }
 }
+

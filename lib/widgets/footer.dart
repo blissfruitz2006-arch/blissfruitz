@@ -14,18 +14,20 @@ class AppFooter extends ConsumerWidget {
     final settingsAsync = ref.watch(generalSettingsProvider);
     final screenWidth = MediaQuery.of(context).size.width;
     
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: isDark 
-            ? const Color(0xFF0F172A) 
-            : const Color(0xFF132313),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+    return Material(
+      color: Colors.transparent,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: isDark 
+              ? const Color(0xFF0F172A) 
+              : const Color(0xFF132313),
+          border: Border(
+            top: BorderSide(
+              color: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.black.withValues(alpha: 0.05),
+            ),
           ),
         ),
-      ),
       padding: EdgeInsets.fromLTRB(
         24, 
         32, 
@@ -94,8 +96,9 @@ class AppFooter extends ConsumerWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildBrandSection(BuildContext context, AsyncValue settingsAsync, bool isLeft) {
     return SizedBox(
@@ -294,3 +297,4 @@ class _FooterColumn extends StatelessWidget {
     );
   }
 }
+

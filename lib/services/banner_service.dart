@@ -2,7 +2,7 @@ import '../config/supabase_config.dart';
 import '../models/banner_model.dart';
 
 class BannerService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   static Future<List<BannerModel>> getActiveBanners() async {
     final data = await _client

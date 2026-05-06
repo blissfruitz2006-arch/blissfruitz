@@ -21,14 +21,19 @@ class LoggerService {
     LogLevel level = LogLevel.info,
     Map<String, dynamic>? metadata,
   }) async {
-    final user = AuthService.currentUser;
+    User? user;
+    try {
+      user = AuthService.currentUser;
+    } catch (_) {
+      // Ignore in tests where Supabase is not initialized
+    }
     final Map<String, dynamic> logData = {
       'event': event,
       'message': message,
       'level': level.name,
-      'userId': user?.id,
-      'userEmail': user?.email,
-      'ipAddress': kIsWeb ? 'web_client' : 'mobile_client',
+      'user_id': user?.id,
+      'user_email': user?.email,
+      'ip_address': kIsWeb ? 'web_client' : 'mobile_client',
       'metadata': {
         ...?metadata,
         'platform': kIsWeb ? 'web' : 'mobile',

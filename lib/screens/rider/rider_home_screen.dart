@@ -1,14 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../config/supabase_config.dart';
 import '../../config/theme.dart';
 import '../../models/delivery_assignment.dart';
 import '../../models/rider.dart';
 import '../../providers/rider_provider.dart';
 import '../../providers/location_provider.dart';
-import 'order_detail_screen.dart';
-import 'earnings_screen.dart';
+import 'package:go_router/go_router.dart';
 
 class RiderHomeScreen extends ConsumerStatefulWidget {
   const RiderHomeScreen({super.key});
@@ -18,7 +16,6 @@ class RiderHomeScreen extends ConsumerStatefulWidget {
 
 class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
     with SingleTickerProviderStateMixin {
-  int _currentIndex = 0;
   bool _isOnline = false;
   bool _isToggling = false;
   late AnimationController _pulseCtrl;
@@ -51,41 +48,29 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: [
-        _homeTab(isDark, cs), const EarningsScreen(), _profileTab(isDark, cs),
-      ]),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => setState(() => _currentIndex = i),
-        backgroundColor: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white,
-        indicatorColor: cs.primary.withValues(alpha: 0.12),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), selectedIcon: Icon(Icons.account_balance_wallet_rounded), label: 'Earnings'),
-          NavigationDestination(icon: Icon(Icons.person_outline_rounded), selectedIcon: Icon(Icons.person_rounded), label: 'Profile'),
-        ],
-      ),
-    );
-  }
-
-  Widget _homeTab(bool isDark, ColorScheme cs) {
+    
     final riderAsync = ref.watch(riderProfileProvider);
     return riderAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
+      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
+      error: (e, _) => Scaffold(body: Center(child: Text('Error: $e'))),
       data: (rider) {
-        if (rider == null) return const Center(child: Text('Rider profile not found.'));
+        if (rider == null) return const Scaffold(body: Center(child: Text('Rider profile not found.')));
         if (!_isToggling) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && _isOnline != rider.isAvailable) setState(() => _isOnline = rider.isAvailable);
           });
         }
-        return SafeArea(child: CustomScrollView(slivers: [
-          SliverToBoxAdapter(child: _header(rider, cs)),
-          SliverToBoxAdapter(child: _toggle(rider, isDark, cs)),
-          if (_isOnline) _assignmentsList(isDark, cs) else SliverFillRemaining(child: _offlineState(cs)),
-        ]));
+        return Scaffold(
+          body: SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(child: _header(rider, cs)),
+                SliverToBoxAdapter(child: _toggle(rider, isDark, cs)),
+                if (_isOnline) _assignmentsList(isDark, cs) else SliverFillRemaining(child: _offlineState(cs)),
+              ],
+            ),
+          ),
+        );
       },
     );
   }
@@ -104,7 +89,12 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
       const SizedBox(width: 14),
       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Text('Hey, ${rider.fullName.split(' ').first} 👋', style: GoogleFonts.outfit(fontSize: 20, fontWeight: FontWeight.w700, color: cs.onSurface)),
-        Text(rider.vehicleType ?? 'Delivery Partner', style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant)),
+        const SizedBox(height: 2),
+        Row(children: [
+          _statMiniItem('₹${rider.totalEarnings.toStringAsFixed(0)}', 'Earned', cs),
+          const SizedBox(width: 12),
+          _statMiniItem('${rider.totalDeliveries}', 'Deliveries', cs),
+        ]),
       ])),
       Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -116,6 +106,14 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
         ]),
       ),
     ]));
+  }
+
+  Widget _statMiniItem(String val, String label, ColorScheme cs) {
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Text(val, style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w800, color: cs.primary)),
+      const SizedBox(width: 4),
+      Text(label, style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.7))),
+    ]);
   }
 
   Widget _toggle(Rider rider, bool isDark, ColorScheme cs) {
@@ -155,11 +153,58 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
       error: (e, _) => SliverFillRemaining(child: Center(child: Text('Error: $e'))),
       data: (all) {
         final active = all.where((a) => a.status != DeliveryStatus.delivered && a.status != DeliveryStatus.failed).toList();
-        if (active.isEmpty) return SliverFillRemaining(child: _offlineState(cs, msg: 'No active deliveries', sub: 'New orders will appear here'));
-        return SliverPadding(padding: const EdgeInsets.symmetric(horizontal: 20), sliver: SliverList(delegate: SliverChildBuilderDelegate((ctx, i) {
-          if (i == 0) return Padding(padding: const EdgeInsets.only(bottom: 12, top: 4), child: Text('Active Deliveries (${active.length})', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)));
-          return _assignmentCard(active[i - 1], isDark, cs);
-        }, childCount: active.length + 1)));
+        final history = all.where((a) => a.status == DeliveryStatus.delivered || a.status == DeliveryStatus.failed).take(5).toList();
+
+        if (active.isEmpty && history.isEmpty) {
+          return SliverFillRemaining(child: _offlineState(cs, msg: 'No deliveries yet', sub: 'New orders will appear here'));
+        }
+
+        return SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverList(
+            delegate: SliverChildBuilderDelegate(
+              (ctx, i) {
+                // Active Section
+                if (active.isNotEmpty) {
+                  if (i == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12, top: 4),
+                      child: Text('Active Deliveries (${active.length})', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                    );
+                  }
+                  if (i <= active.length) {
+                    return _assignmentCard(active[i - 1], isDark, cs);
+                  }
+                }
+
+                // History Section
+                final historyIndex = active.isNotEmpty ? i - active.length - 1 : i;
+                if (history.isNotEmpty) {
+                  if (historyIndex == 0) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12, top: 16),
+                      child: Row(
+                        children: [
+                          Text('Recent History', style: GoogleFonts.outfit(fontSize: 16, fontWeight: FontWeight.w700, color: cs.onSurface)),
+                          const Spacer(),
+                          TextButton(
+                            onPressed: () => context.pushNamed('rider-earnings'),
+                            child: const Text('View All'),
+                          ),
+                        ],
+                      ),
+                    );
+                  }
+                  if (historyIndex > 0 && historyIndex <= history.length) {
+                    return _historyCard(history[historyIndex - 1], isDark, cs);
+                  }
+                }
+                return null;
+              },
+              childCount: (active.isNotEmpty ? active.length + 1 : 0) + (history.isNotEmpty ? history.length + 1 : 0),
+            ),
+          ),
+        );
       },
     );
   }
@@ -171,7 +216,7 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
     final total = o?.total ?? 0;
     final sColor = a.status == DeliveryStatus.assigned ? const Color(0xFF3B82F6) : a.status == DeliveryStatus.pickedUp ? const Color(0xFFF59E0B) : const Color(0xFF8B5CF6);
     return GestureDetector(
-      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderDetailScreen(assignment: a))),
+      onTap: () => context.pushNamed('rider-order-detail', pathParameters: {'id': a.orderId.toString()}, extra: a),
       child: Container(margin: const EdgeInsets.only(bottom: 12), padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(color: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white, borderRadius: BorderRadius.circular(20),
           border: Border.all(color: cs.outline.withValues(alpha: 0.15)), boxShadow: AppTheme.softShadow),
@@ -201,6 +246,50 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
     );
   }
 
+  Widget _historyCard(DeliveryAssignment a, bool isDark, ColorScheme cs) {
+    final o = a.order;
+    final name = o?.shippingName ?? 'Customer';
+    final deliveredAt = a.deliveredAt ?? a.assignedAt;
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isDark ? AppTheme.darkSurfaceContainerLowest.withValues(alpha: 0.5) : Colors.white.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cs.outline.withValues(alpha: 0.1)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: const Color(0xFF10B981).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.check_circle_outline_rounded, color: Color(0xFF10B981), size: 18),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Order #${a.orderId} • $name', style: GoogleFonts.outfit(fontSize: 13, fontWeight: FontWeight.w600, color: cs.onSurface)),
+                Text(
+                  deliveredAt != null ? _formatTime(deliveredAt) : 'Delivered',
+                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant.withValues(alpha: 0.7)),
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Colors.grey),
+        ],
+      ),
+    );
+  }
+
+  String _formatTime(DateTime dt) {
+    final ist = dt.toUtc().add(const Duration(hours: 5, minutes: 30));
+    return '${ist.day}/${ist.month} ${ist.hour}:${ist.minute.toString().padLeft(2, '0')}';
+  }
+
   Widget _offlineState(ColorScheme cs, {String msg = 'Go online to receive orders', String sub = 'Toggle the switch above to start receiving delivery requests.'}) {
     return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
       Container(width: 100, height: 100, decoration: BoxDecoration(color: cs.outline.withValues(alpha: 0.1), shape: BoxShape.circle),
@@ -212,51 +301,5 @@ class _RiderHomeScreenState extends ConsumerState<RiderHomeScreen>
     ]));
   }
 
-  Widget _profileTab(bool isDark, ColorScheme cs) {
-    final riderAsync = ref.watch(riderProfileProvider);
-    return riderAsync.when(
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error: $e')),
-      data: (rider) {
-        if (rider == null) return const Center(child: Text('No profile found'));
-        return SafeArea(child: ListView(padding: const EdgeInsets.all(20), children: [
-          const SizedBox(height: 12),
-          Center(child: Container(
-            width: 80, height: 80,
-            decoration: BoxDecoration(gradient: AppTheme.primaryGradient, shape: BoxShape.circle),
-            child: Center(child: Text(
-              (rider.fullName.isNotEmpty) ? rider.fullName[0].toUpperCase() : 'R',
-              style: GoogleFonts.outfit(fontSize: 34, fontWeight: FontWeight.w800, color: Colors.white),
-            )),
-          )),
-          const SizedBox(height: 14),
-          Center(child: Text(rider.fullName, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w700, color: cs.onSurface))),
-          Center(child: Text(rider.phone ?? 'No phone', style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant))),
-          const SizedBox(height: 28),
-          Row(children: [
-            _stat('Deliveries', '${rider.totalDeliveries}', Icons.local_shipping_rounded, isDark, cs),
-            const SizedBox(width: 12),
-            _stat('Earned', '₹${rider.totalEarnings.toStringAsFixed(0)}', Icons.account_balance_wallet_rounded, isDark, cs),
-          ]),
-          const SizedBox(height: 20),
-          _infoTile('Vehicle', rider.vehicleType ?? 'Not set', Icons.two_wheeler_rounded, cs),
-          _infoTile('Zone', rider.zone ?? 'Not set', Icons.map_outlined, cs),
-          _infoTile('Member Since', rider.createdAt != null ? '${rider.createdAt!.day}/${rider.createdAt!.month}/${rider.createdAt!.year}' : 'N/A', Icons.calendar_today_rounded, cs),
-          const SizedBox(height: 28),
-          OutlinedButton.icon(onPressed: () => SupabaseConfig.client.auth.signOut(), icon: const Icon(Icons.logout_rounded), label: const Text('Sign Out'),
-            style: OutlinedButton.styleFrom(foregroundColor: AppTheme.error, side: const BorderSide(color: AppTheme.error), padding: const EdgeInsets.symmetric(vertical: 16), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)))),
-        ]));
-      },
-    );
-  }
-
-  Widget _stat(String label, String val, IconData ic, bool isDark, ColorScheme cs) => Expanded(child: Container(padding: const EdgeInsets.all(16),
-    decoration: BoxDecoration(color: isDark ? AppTheme.darkSurfaceContainerLowest : Colors.white, borderRadius: BorderRadius.circular(20),
-      border: Border.all(color: cs.outline.withValues(alpha: 0.15)), boxShadow: AppTheme.softShadow),
-    child: Column(children: [Icon(ic, color: cs.primary, size: 28), const SizedBox(height: 8),
-      Text(val, style: GoogleFonts.outfit(fontSize: 22, fontWeight: FontWeight.w800, color: cs.onSurface)), Text(label, style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant))])));
-
-  Widget _infoTile(String label, String val, IconData ic, ColorScheme cs) => Padding(padding: const EdgeInsets.only(bottom: 12), child: Row(children: [
-    Icon(ic, size: 20, color: cs.primary), const SizedBox(width: 14), Text(label, style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant)),
-    const Spacer(), Text(val, style: GoogleFonts.outfit(fontSize: 14, fontWeight: FontWeight.w600, color: cs.onSurface))]));
 }
+

@@ -255,6 +255,8 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Text(
                   title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.outfit(
                     fontWeight: FontWeight.w800,
                     fontSize: isTiny ? 13 : 15,
@@ -262,7 +264,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 Text(
                   subtitle,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: GoogleFonts.beVietnamPro(
                     fontSize: isTiny ? 10 : 12,
@@ -418,3 +420,4 @@ class _ProductGridSkeleton extends StatelessWidget {
     );
   }
 }
+

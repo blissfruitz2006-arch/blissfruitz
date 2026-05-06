@@ -14,7 +14,7 @@ class DeliveryAssignment {
   final String? notes;
   final DateTime? createdAt;
   final DateTime? updatedAt;
-  final String? otpCode;
+  final String? proofImageUrl;
   
   // Optional nested fields for joined queries
   final Rider? rider;
@@ -33,43 +33,62 @@ class DeliveryAssignment {
     this.notes,
     this.createdAt,
     this.updatedAt,
-    this.otpCode,
+    this.proofImageUrl,
     this.rider,
     this.order,
   });
 
   factory DeliveryAssignment.fromJson(Map<String, dynamic> json) {
     return DeliveryAssignment(
-      id: json['id'] as String,
-      orderId: json['order_id'] as int,
-      riderId: json['rider_id'] as String,
+      id: (json['id'] ?? json['assignment_id']) as String,
+      orderId: (json['order_id'] ?? json['orderId']) as int,
+      riderId: (json['rider_id'] ?? json['riderId']) as String,
       status: _parseStatus(json['status'] as String?),
-      assignedAt: json['assigned_at'] != null
-          ? DateTime.tryParse(json['assigned_at'] as String)
+      assignedAt: (json['assigned_at'] ?? json['assignedAt']) != null
+          ? DateTime.tryParse((json['assigned_at'] ?? json['assignedAt']) as String)
           : null,
-      pickedUpAt: json['picked_up_at'] != null
-          ? DateTime.tryParse(json['picked_up_at'] as String)
+      pickedUpAt: (json['picked_up_at'] ?? json['pickedUpAt']) != null
+          ? DateTime.tryParse((json['picked_up_at'] ?? json['pickedUpAt']) as String)
           : null,
-      deliveredAt: json['delivered_at'] != null
-          ? DateTime.tryParse(json['delivered_at'] as String)
+      deliveredAt: (json['delivered_at'] ?? json['deliveredAt']) != null
+          ? DateTime.tryParse((json['delivered_at'] ?? json['deliveredAt']) as String)
           : null,
-      failedAt: json['failed_at'] != null
-          ? DateTime.tryParse(json['failed_at'] as String)
+      failedAt: (json['failed_at'] ?? json['failedAt']) != null
+          ? DateTime.tryParse((json['failed_at'] ?? json['failedAt']) as String)
           : null,
-      failReason: json['fail_reason'] as String?,
+      failReason: (json['fail_reason'] ?? json['failReason']) as String?,
       notes: json['notes'] as String?,
-      createdAt: json['created_at'] != null
-          ? DateTime.tryParse(json['created_at'] as String)
+      createdAt: (json['created_at'] ?? json['createdAt']) != null
+          ? DateTime.tryParse((json['created_at'] ?? json['createdAt']) as String)
           : null,
-      updatedAt: json['updated_at'] != null
-          ? DateTime.tryParse(json['updated_at'] as String)
+      updatedAt: (json['updated_at'] ?? json['updatedAt']) != null
+          ? DateTime.tryParse((json['updated_at'] ?? json['updatedAt']) as String)
           : null,
-      otpCode: json['otp_code'] as String?,
+      proofImageUrl: (json['proof_image_url'] ?? json['proofImageUrl'] ?? json['proof_url']) as String?,
       // Nested joins
       rider: json['riders'] != null ? Rider.fromJson(json['riders']) : null,
-      order: json['Order'] != null ? Order.fromJson(json['Order']) : null,
+      order: _parseOrder(json),
     );
   }
+
+  static Order? _parseOrder(Map<String, dynamic> json) {
+    final orderData = json['Order'] ?? json['order'] ?? json['orders'] ?? json['Order_id'];
+    if (orderData == null) {
+      // If order is null, check if the top level has Order keys (flattened join)
+      if (json.containsKey('orderNumber') || json.containsKey('shippingAddress')) {
+        return Order.fromJson(json);
+      }
+      return null;
+    }
+    
+    if (orderData is List) {
+      if (orderData.isEmpty) return null;
+      return Order.fromJson(orderData.first as Map<String, dynamic>);
+    }
+    
+    return Order.fromJson(orderData as Map<String, dynamic>);
+  }
+
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -84,7 +103,7 @@ class DeliveryAssignment {
     'notes': notes,
     'created_at': createdAt?.toIso8601String(),
     'updated_at': updatedAt?.toIso8601String(),
-    'otp_code': otpCode,
+    'proof_image_url': proofImageUrl,
     if (rider != null) 'riders': rider!.toJson(),
     if (order != null) 'Order': order!.toJson(),
   };
@@ -118,7 +137,7 @@ class DeliveryAssignment {
     String? notes,
     DateTime? createdAt,
     DateTime? updatedAt,
-    String? otpCode,
+    String? proofImageUrl,
     Rider? rider,
     Order? order,
   }) {
@@ -135,7 +154,7 @@ class DeliveryAssignment {
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
-      otpCode: otpCode ?? this.otpCode,
+      proofImageUrl: proofImageUrl ?? this.proofImageUrl,
       rider: rider ?? this.rider,
       order: order ?? this.order,
     );

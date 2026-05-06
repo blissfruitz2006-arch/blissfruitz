@@ -3,7 +3,7 @@ import '../config/supabase_config.dart';
 import '../utils/rate_limiter.dart';
 
 class ContactService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   static Future<void> submitMessage({
     required String name,

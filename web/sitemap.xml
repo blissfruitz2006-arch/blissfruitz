@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- Homepage -->
+  <url>
+    <loc>https://blissfruitz.com/</loc>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+  </url>
+
+  <!-- Shop (All Products) -->
+  <url>
+    <loc>https://blissfruitz.com/shop</loc>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Blog -->
+  <url>
+    <loc>https://blissfruitz.com/blog</loc>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+
+  <!-- Contact -->
+  <url>
+    <loc>https://blissfruitz.com/contact</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- FAQ -->
+  <url>
+    <loc>https://blissfruitz.com/settings/faq</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+
+  <!-- Static Pages -->
+  <url>
+    <loc>https://blissfruitz.com/terms</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/privacy</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/shipping</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/returns</loc>
+    <changefreq>yearly</changefreq>
+    <priority>0.3</priority>
+  </url>
+
+  <!-- Local SEO: Delivery Area Pages -->
+  <url>
+    <loc>https://blissfruitz.com/delivery/andheri</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/bandra</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/juhu</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/powai</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/borivali</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/dadar</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/thane</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://blissfruitz.com/delivery/malad</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!--
+    DYNAMIC PAGES — Add product and blog URLs below as they are created.
+    For product pages, use the pattern:
+    <url>
+      <loc>https://blissfruitz.com/product/PRODUCT-SLUG</loc>
+      <changefreq>weekly</changefreq>
+      <priority>0.8</priority>
+      <image:image>
+        <image:loc>https://YOUR-SUPABASE-URL/storage/v1/object/public/product-images/IMAGE-PATH</image:loc>
+        <image:title>PRODUCT NAME - Fresh Delivery Mumbai | BlissFruitz</image:title>
+      </image:image>
+    </url>
+
+    For blog pages, use the pattern:
+    <url>
+      <loc>https://blissfruitz.com/blog/BLOG-SLUG</loc>
+      <changefreq>monthly</changefreq>
+      <priority>0.7</priority>
+    </url>
+
+    TODO: Automate sitemap generation via a Supabase Edge Function
+    that queries products and blog_posts tables and generates this XML dynamically.
+  -->
+
+</urlset>

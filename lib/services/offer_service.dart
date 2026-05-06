@@ -2,7 +2,7 @@ import '../config/supabase_config.dart';
 import '../models/offer.dart';
 
 class OfferService {
-  static final _client = SupabaseConfig.client;
+  static SupabaseClient get _client => SupabaseConfig.client;
 
   static Future<List<Offer>> getActiveOffers() async {
     final data = await _client

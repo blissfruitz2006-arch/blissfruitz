@@ -1,0 +1,51 @@
+Analyzing blissfruitz...                                        
+
+  error • The argument type 'Object?' can't be assigned to the parameter type 'String?'.  • lib/models/order.dart:241:11 • argument_type_not_assignable
+  error • The argument type 'Object?' can't be assigned to the parameter type 'String?'.  • lib/models/order.dart:243:15 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/cart_provider.dart:23:54 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/cart_provider.dart:48:61 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/cart_provider.dart:55:38 • argument_type_not_assignable
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('String') • lib/providers/cart_provider.dart:99:53 • unrelated_type_equality_checks
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('String') • lib/providers/cart_provider.dart:111:62 • unrelated_type_equality_checks
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('String') • lib/providers/cart_provider.dart:127:62 • unrelated_type_equality_checks
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('String') • lib/providers/cart_provider.dart:143:62 • unrelated_type_equality_checks
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/order_provider.dart:10:37 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/order_provider.dart:17:36 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/review_provider.dart:7:42 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/providers/review_provider.dart:12:41 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/content/banner_manager_screen.dart:142:69 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/content/blog_manager_screen.dart:86:59 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/content/offer_manager_screen.dart:86:60 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/coupons/coupon_manager_screen.dart:75:61 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/customers/customer_detail_screen.dart:69:46 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/screens/admin/customers/customer_detail_screen.dart:79:39 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:49:45 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:101:47 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:120:45 • argument_type_not_assignable
+  error • The method 'updateOrderTracking' isn't defined for the type 'AdminService' • lib/screens/admin/orders/order_detail_screen.dart:136:26 • undefined_method
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:142:45 • argument_type_not_assignable
+  error • The method 'updateOrderRequestStatus' isn't defined for the type 'AdminService' • lib/screens/admin/orders/order_detail_screen.dart:182:26 • undefined_method
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:188:45 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/admin/orders/order_detail_screen.dart:204:55 • argument_type_not_assignable
+   info • 'value' is deprecated and shouldn't be used. Use initialValue instead. This will set the initial value for the form field. This feature was deprecated after v3.33.0-1.0.pre • lib/screens/admin/products/product_form_screen.dart:203:35 • deprecated_member_use
+   info • The type of the right operand ('int') isn't a subtype or a supertype of the left operand ('String?') • lib/screens/admin/riders/assign_rider_screen.dart:35:46 • unrelated_type_equality_checks
+  error • The getter 'supabase' isn't defined for the type 'AdminService' • lib/screens/admin/support/message_list_screen.dart:31:40 • undefined_getter
+  error • The getter 'supabase' isn't defined for the type 'AdminService' • lib/screens/admin/support/message_list_screen.dart:197:27 • undefined_getter
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/cart_screen.dart:160:90 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/cart_screen.dart:177:90 • argument_type_not_assignable
+  error • The argument type 'int?' can't be assigned to the parameter type 'String?'.  • lib/screens/public/checkout_screen.dart:155:19 • argument_type_not_assignable
+  error • The argument type 'int?' can't be assigned to the parameter type 'String?'.  • lib/screens/public/checkout_screen.dart:228:19 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/order_tracking_screen.dart:30:55 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/order_tracking_screen.dart:57:72 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/order_tracking_screen.dart:1048:45 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/screens/public/order_tracking_screen.dart:1087:45 • argument_type_not_assignable
+  error • The argument type 'Object' can't be assigned to the parameter type 'String'.  • lib/screens/public/product_detail_screen.dart:61:9 • argument_type_not_assignable
+warning • The value of the local variable 'orderNumber' isn't used • lib/services/order_service.dart:35:13 • unused_local_variable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/widgets/admin/admin_dialogs.dart:66:41 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/widgets/admin/admin_dialogs.dart:291:39 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/widgets/admin/admin_dialogs.dart:506:40 • argument_type_not_assignable
+  error • The argument type 'int' can't be assigned to the parameter type 'String'.  • lib/widgets/admin/admin_dialogs.dart:745:41 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/widgets/cart_drawer.dart:129:58 • argument_type_not_assignable
+  error • The argument type 'String' can't be assigned to the parameter type 'int'.  • lib/widgets/cart_drawer.dart:149:58 • argument_type_not_assignable
+
+47 issues found. (ran in 28.8s)

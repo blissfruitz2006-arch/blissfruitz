@@ -32,8 +32,12 @@ class _CouponFormDialogState extends State<CouponFormDialog> {
   void initState() {
     super.initState();
     _codeController = TextEditingController(text: widget.coupon?.code);
-    _discountController = TextEditingController(text: widget.coupon?.discountValue.toString());
-    _minOrderController = TextEditingController(text: widget.coupon?.minOrder.toString() ?? '0');
+    _discountController = TextEditingController(
+      text: widget.coupon?.discountValue.toString(),
+    );
+    _minOrderController = TextEditingController(
+      text: widget.coupon?.minOrder.toString() ?? '0',
+    );
     _discountType = widget.coupon?.discountType ?? 'percent';
   }
 
@@ -67,7 +71,11 @@ class _CouponFormDialogState extends State<CouponFormDialog> {
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -118,15 +126,26 @@ class _CouponFormDialogState extends State<CouponFormDialog> {
                           hintText: 'e.g. WELCOME10',
                         ),
                         textCapitalization: TextCapitalization.characters,
-                        validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
-                        initialValue: ['percent', 'flat'].contains(_discountType) ? _discountType : 'percent',
-                        decoration: const InputDecoration(labelText: 'Discount Type'),
+                        initialValue: ['percent', 'flat'].contains(_discountType)
+                            ? _discountType
+                            : 'percent',
+                        decoration: const InputDecoration(
+                          labelText: 'Discount Type',
+                        ),
                         items: const [
-                          DropdownMenuItem(value: 'percent', child: Text('Percentage (%)')),
-                          DropdownMenuItem(value: 'flat', child: Text('Flat Amount (₹)')),
+                          DropdownMenuItem(
+                            value: 'percent',
+                            child: Text('Percentage (%)'),
+                          ),
+                          DropdownMenuItem(
+                            value: 'flat',
+                            child: Text('Flat Amount (₹)'),
+                          ),
                         ],
                         onChanged: (val) {
                           if (val != null) setState(() => _discountType = val);
@@ -135,14 +154,19 @@ class _CouponFormDialogState extends State<CouponFormDialog> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _discountController,
-                        decoration: const InputDecoration(labelText: 'Discount Value'),
+                        decoration: const InputDecoration(
+                          labelText: 'Discount Value',
+                        ),
                         keyboardType: TextInputType.number,
-                        validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _minOrderController,
-                        decoration: const InputDecoration(labelText: 'Min Order Amount'),
+                        decoration: const InputDecoration(
+                          labelText: 'Min Order Amount',
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ],
@@ -156,12 +180,23 @@ class _CouponFormDialogState extends State<CouponFormDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _save,
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
-                    child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save Coupon'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(120, 48),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save Coupon'),
                   ),
                 ],
               ),
@@ -189,7 +224,7 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
   late TextEditingController _contentController;
   late TextEditingController _excerptController;
   late TextEditingController _authorController;
-  
+
   String? _imagePath;
   Uint8List? _uploadedBytes;
   String? _uploadedName;
@@ -201,7 +236,9 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
     _titleController = TextEditingController(text: widget.blog?.title);
     _contentController = TextEditingController(text: widget.blog?.content);
     _excerptController = TextEditingController(text: widget.blog?.excerpt);
-    _authorController = TextEditingController(text: widget.blog?.author ?? 'Admin');
+    _authorController = TextEditingController(
+      text: widget.blog?.author ?? 'Admin',
+    );
     _imagePath = widget.blog?.coverImage;
   }
 
@@ -222,11 +259,20 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
       String? finalImagePath = _imagePath;
 
       if (_uploadedBytes != null) {
-        final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
-        finalImagePath = await AdminService.uploadImageBytes('blog', uniqueName, _uploadedBytes!, 'image/jpeg');
+        final uniqueName =
+            '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
+        finalImagePath = await AdminService.uploadImageBytes(
+          'blog',
+          uniqueName,
+          _uploadedBytes!,
+          'image/jpeg',
+        );
       }
 
-      final slug = _titleController.text.toLowerCase().replaceAll(' ', '-').replaceAll(RegExp(r'[^a-z0-9-]'), '');
+      final slug = _titleController.text
+          .toLowerCase()
+          .replaceAll(' ', '-')
+          .replaceAll(RegExp(r'[^a-z0-9-]'), '');
 
       final data = {
         'title': _titleController.text.trim(),
@@ -236,7 +282,9 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
         'author': _authorController.text.trim(),
         'coverImage': finalImagePath,
         'isPublished': true,
-        'publishedAt': widget.blog?.publishedAt?.toIso8601String() ?? DateTime.now().toIso8601String(),
+        'publishedAt':
+            widget.blog?.publishedAt?.toIso8601String() ??
+            DateTime.now().toIso8601String(),
       };
 
       if (widget.blog != null) {
@@ -248,7 +296,11 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -307,7 +359,8 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
                       TextFormField(
                         controller: _titleController,
                         decoration: const InputDecoration(labelText: 'Title'),
-                        validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
@@ -324,12 +377,15 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
                           alignLabelWithHint: true,
                         ),
                         maxLines: 8,
-                        validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _authorController,
-                        decoration: const InputDecoration(labelText: 'Author Name'),
+                        decoration: const InputDecoration(
+                          labelText: 'Author Name',
+                        ),
                       ),
                     ],
                   ),
@@ -342,12 +398,23 @@ class _BlogFormDialogState extends State<BlogFormDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _save,
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
-                    child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Publish Post'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(120, 48),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Publish Post'),
                   ),
                 ],
               ),
@@ -376,7 +443,7 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
   late TextEditingController _codeController;
   late TextEditingController _discountController;
   late TextEditingController _orderController;
-  
+
   String? _imagePath;
   Uint8List? _uploadedBytes;
   String? _uploadedName;
@@ -388,8 +455,12 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
     _titleController = TextEditingController(text: widget.offer?.title);
     _descController = TextEditingController(text: widget.offer?.description);
     _codeController = TextEditingController(text: widget.offer?.couponCode);
-    _discountController = TextEditingController(text: widget.offer?.discountValue.toString());
-    _orderController = TextEditingController(text: (widget.offer?.sortOrder ?? 0).toString());
+    _discountController = TextEditingController(
+      text: widget.offer?.discountValue.toString(),
+    );
+    _orderController = TextEditingController(
+      text: (widget.offer?.sortOrder ?? 0).toString(),
+    );
     _imagePath = widget.offer?.imageUrl;
   }
 
@@ -411,8 +482,14 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
       String? finalImagePath = _imagePath;
 
       if (_uploadedBytes != null) {
-        final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
-        finalImagePath = await AdminService.uploadImageBytes('offers', uniqueName, _uploadedBytes!, 'image/jpeg');
+        final uniqueName =
+            '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
+        finalImagePath = await AdminService.uploadImageBytes(
+          'offers',
+          uniqueName,
+          _uploadedBytes!,
+          'image/jpeg',
+        );
       }
 
       final data = {
@@ -434,7 +511,11 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -493,12 +574,15 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
                       TextFormField(
                         controller: _titleController,
                         decoration: const InputDecoration(labelText: 'Title'),
-                        validator: (v) => v?.isEmpty == true ? 'Required' : null,
+                        validator: (v) =>
+                            v?.isEmpty == true ? 'Required' : null,
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _descController,
-                        decoration: const InputDecoration(labelText: 'Description'),
+                        decoration: const InputDecoration(
+                          labelText: 'Description',
+                        ),
                         maxLines: 2,
                       ),
                       const SizedBox(height: 16),
@@ -507,14 +591,18 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _codeController,
-                              decoration: const InputDecoration(labelText: 'Coupon Code'),
+                              decoration: const InputDecoration(
+                                labelText: 'Coupon Code',
+                              ),
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
                             child: TextFormField(
                               controller: _discountController,
-                              decoration: const InputDecoration(labelText: 'Discount Text'),
+                              decoration: const InputDecoration(
+                                labelText: 'Discount Text',
+                              ),
                             ),
                           ),
                         ],
@@ -522,7 +610,9 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _orderController,
-                        decoration: const InputDecoration(labelText: 'Sort Order'),
+                        decoration: const InputDecoration(
+                          labelText: 'Sort Order',
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ],
@@ -536,12 +626,23 @@ class _OfferFormDialogState extends State<OfferFormDialog> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
+                  ),
                   const SizedBox(width: 12),
                   ElevatedButton(
                     onPressed: _isLoading ? null : _save,
-                    style: ElevatedButton.styleFrom(minimumSize: const Size(120, 48)),
-                    child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save Offer'),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(120, 48),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Text('Save Offer'),
                   ),
                 ],
               ),
@@ -570,7 +671,7 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
   late TextEditingController _linkController;
   late TextEditingController _orderController;
   String _placement = 'home_top';
-  
+
   String? _imagePath;
   Uint8List? _uploadedBytes;
   String? _uploadedName;
@@ -582,9 +683,16 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
     _titleController = TextEditingController(text: widget.banner?.title);
     _subtitleController = TextEditingController(text: widget.banner?.subtitle);
     _linkController = TextEditingController(text: widget.banner?.linkUrl);
-    _orderController = TextEditingController(text: (widget.banner?.sortOrder ?? 0).toString());
+    _orderController = TextEditingController(
+      text: (widget.banner?.sortOrder ?? 0).toString(),
+    );
     _placement = (widget.banner?.placement ?? 'hero').toLowerCase().trim();
-    if (!['hero', 'home_top', 'home_middle', 'home_bottom'].contains(_placement)) {
+    if (![
+      'hero',
+      'home_top',
+      'home_middle',
+      'home_bottom',
+    ].contains(_placement)) {
       _placement = 'hero';
     }
     _imagePath = widget.banner?.imagePath;
@@ -602,7 +710,9 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     if (_imagePath == null && _uploadedBytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select an image')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select an image')));
       return;
     }
 
@@ -611,8 +721,14 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
       String finalImagePath = _imagePath ?? '';
 
       if (_uploadedBytes != null) {
-        final uniqueName = '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
-        finalImagePath = await AdminService.uploadImageBytes('banners', uniqueName, _uploadedBytes!, 'image/jpeg');
+        final uniqueName =
+            '${DateTime.now().millisecondsSinceEpoch}_$_uploadedName';
+        finalImagePath = await AdminService.uploadImageBytes(
+          'banners',
+          uniqueName,
+          _uploadedBytes!,
+          'image/jpeg',
+        );
       }
 
       final data = {
@@ -634,7 +750,11 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
       widget.onSaved();
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -687,7 +807,9 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.5,
-                          color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          color: AppTheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -709,7 +831,9 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
                           fontSize: 11,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 1.5,
-                          color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+                          color: AppTheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -739,19 +863,28 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
                       const SizedBox(height: 16),
                       DropdownButtonFormField<String>(
                         initialValue: _placement,
-                        decoration: const InputDecoration(labelText: 'Placement'),
-                        items: ['hero', 'home_top', 'home_middle', 'home_bottom']
-                            .map((p) => DropdownMenuItem(
-                                  value: p,
-                                  child: Text(p.replaceAll('_', ' ').toUpperCase()),
-                                ))
-                            .toList(),
+                        decoration: const InputDecoration(
+                          labelText: 'Placement',
+                        ),
+                        items:
+                            ['hero', 'home_top', 'home_middle', 'home_bottom']
+                                .map(
+                                  (p) => DropdownMenuItem(
+                                    value: p,
+                                    child: Text(
+                                      p.replaceAll('_', ' ').toUpperCase(),
+                                    ),
+                                  ),
+                                )
+                                .toList(),
                         onChanged: (val) => setState(() => _placement = val!),
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
                         controller: _orderController,
-                        decoration: const InputDecoration(labelText: 'Display Order'),
+                        decoration: const InputDecoration(
+                          labelText: 'Display Order',
+                        ),
                         keyboardType: TextInputType.number,
                       ),
                     ],
@@ -779,7 +912,10 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
                         ? const SizedBox(
                             height: 20,
                             width: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
                         : const Text('Save Changes'),
                   ),

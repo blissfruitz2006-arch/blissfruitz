@@ -198,9 +198,18 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
     final bonus = (earning['bonus_earnings'] as num?)?.toDouble() ?? 0;
     final total = (earning['total_earnings'] as num?)?.toDouble() ?? 0;
     final assignmentData = earning['delivery_assignments'];
-    final orderId = assignmentData is Map ? assignmentData['order_id'] : null;
-    final deliveredAt = assignmentData is Map && assignmentData['delivered_at'] != null
-        ? DateTime.tryParse(assignmentData['delivered_at'] as String)
+    
+    // Handle both Map and List responses from Supabase joins
+    Map<String, dynamic>? assignment;
+    if (assignmentData is Map) {
+      assignment = Map<String, dynamic>.from(assignmentData);
+    } else if (assignmentData is List && assignmentData.isNotEmpty) {
+      assignment = Map<String, dynamic>.from(assignmentData.first);
+    }
+
+    final orderId = assignment?['order_id'];
+    final deliveredAt = assignment?['delivered_at'] != null
+        ? DateTime.tryParse(assignment!['delivered_at'] as String)
         : (earning['created_at'] != null ? DateTime.tryParse(earning['created_at'] as String) : null);
 
     return Container(
@@ -295,3 +304,4 @@ class _EarningsScreenState extends ConsumerState<EarningsScreen> {
     return '${ist.day} ${months[ist.month - 1]} ${ist.year}, ${ist.hour.toString().padLeft(2, '0')}:${ist.minute.toString().padLeft(2, '0')} IST';
   }
 }
+

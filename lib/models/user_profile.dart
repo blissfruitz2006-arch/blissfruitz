@@ -48,4 +48,19 @@ class UserProfile {
           : null,
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'username': username,
+        'email': email,
+        'googleId': googleId,
+        'supabaseId': supabaseId,
+        'fullName': fullName,
+        'phone': phone,
+        'address': address,
+        'avatarUrl': avatarUrl,
+        'role': role,
+        'isActive': isActive,
+        'createdAt': createdAt?.toIso8601String(),
+      };
 }
