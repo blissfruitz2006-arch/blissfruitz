@@ -36,6 +36,8 @@ jobs:
         run: |
           flutter build apk --release --flavor customer \
             --dart-define=APP_FLAVOR=customer \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-customer-release.apk build/app/outputs/flutter-apk/blissfruitz-customer.apk
 
@@ -44,6 +46,8 @@ jobs:
         run: |
           flutter build apk --release --flavor rider \
             --dart-define=APP_FLAVOR=rider \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-rider-release.apk build/app/outputs/flutter-apk/blissfruitz-rider.apk
 
