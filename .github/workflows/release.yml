@@ -47,19 +47,28 @@ jobs:
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-rider-release.apk build/app/outputs/flutter-apk/blissfruitz-rider.apk
 
-      - name: Create GitHub Release
+      - name: Create Customer Release
+        if: github.repository == 'blissfruitz2006-arch/blissfruitz'
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            build/app/outputs/flutter-apk/blissfruitz-customer.apk
-            build/app/outputs/flutter-apk/blissfruitz-rider.apk
-          name: Release ${{ github.ref_name }}
+          files: build/app/outputs/flutter-apk/blissfruitz-customer.apk
+          name: Customer Release ${{ github.ref_name }}
           tag_name: ${{ github.ref }}
           draft: false
           prerelease: false
-          body: |
-            ## BlissFruitz Release ${{ github.ref_name }}
-            
-            This release contains the latest update for the application.
+          body: "Official BlissFruitz Customer App Update."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Rider Release
+        if: github.repository == 'blissfruitz2006-arch/blissfruitz-rider'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/app/outputs/flutter-apk/blissfruitz-rider.apk
+          name: Rider Release ${{ github.ref_name }}
+          tag_name: ${{ github.ref }}
+          draft: false
+          prerelease: false
+          body: "Official BlissFruitz Rider App Update."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
