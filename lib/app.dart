@@ -200,16 +200,19 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
       ),
-      child: DoubleBackExitWrapper(
-        enabled: !kIsWeb, // Only enable on mobile
-        child: MaterialApp.router(
-          title: FlavorConfig.appName,
-          debugShowCheckedModeBanner: false,
-          theme: lightTheme,
-          darkTheme: darkTheme,
-          themeMode: themeMode,
-          routerConfig: router,
-        ),
+      child: MaterialApp.router(
+        title: FlavorConfig.appName,
+        debugShowCheckedModeBanner: false,
+        theme: lightTheme,
+        darkTheme: darkTheme,
+        themeMode: themeMode,
+        routerConfig: router,
+        builder: (context, child) {
+          return DoubleBackExitWrapper(
+            enabled: !kIsWeb,
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
       ),
     );
   }

@@ -10,7 +10,9 @@ import 'package:blissfruitz/config/routes.dart';
 import 'logger_service.dart';
 
 class UpdateService {
-  static const String _githubApiUrl = 'https://api.github.com/repos/blissfruitz2006-arch/blissfruitz/releases/latest';
+  static String get _githubApiUrl => FlavorConfig.isRider 
+      ? 'https://api.github.com/repos/blissfruitz2006-arch/blissfruitz-rider/releases/latest'
+      : 'https://api.github.com/repos/blissfruitz2006-arch/blissfruitz/releases/latest';
 
   /// Checks for a new version from GitHub Releases
   static Future<void> checkForUpdate() async {
@@ -182,8 +184,14 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
 
   void _startDownload() {
     try {
-      OtaUpdate().execute(widget.url).listen(
+      final String fileName = FlavorConfig.isRider ? 'blissfruitz-rider.apk' : 'blissfruitz-customer.apk';
+      
+      OtaUpdate().execute(
+        widget.url,
+        destinationFilename: fileName,
+      ).listen(
         (OtaEvent event) {
+          if (!mounted) return;
           setState(() {
             switch (event.status) {
               case OtaStatus.DOWNLOADING:
@@ -191,28 +199,41 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
                 _progress = double.tryParse(event.value ?? '0') ?? 0;
                 break;
               case OtaStatus.INSTALLING:
-                _status = 'Installing update...';
-                Navigator.pop(context); // Close progress dialog
+                _status = 'Launching installer...';
+                // Don't pop immediately, wait for system to take over
+                Future.delayed(const Duration(seconds: 3), () {
+                  if (mounted) Navigator.pop(context);
+                });
                 break;
               case OtaStatus.ALREADY_RUNNING_ERROR:
                 _status = 'Update already in progress.';
                 break;
+              case OtaStatus.PERMISSION_NOT_GRANTED_ERROR:
+                _status = 'Permission denied. Please allow "Install from Unknown Sources".';
+                break;
+              case OtaStatus.INTERNAL_ERROR:
+                _status = 'Internal error during update.';
+                break;
               default:
-                _status = 'Update failed. Please try again.';
+                _status = 'Status: ${event.status} ${event.value ?? ""}';
                 break;
             }
           });
         },
         onError: (e) {
-          setState(() {
-            _status = 'Error: $e';
-          });
+          if (mounted) {
+            setState(() {
+              _status = 'Error: $e';
+            });
+          }
         },
       );
     } catch (e) {
-      setState(() {
-        _status = 'Failed to launch update: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _status = 'Failed to launch update: $e';
+        });
+      }
     }
   }
 

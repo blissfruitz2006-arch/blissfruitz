@@ -27,6 +27,14 @@ class _DoubleBackExitWrapperState extends State<DoubleBackExitWrapper> {
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
 
+        // Find the most nested navigator that can pop
+        final NavigatorState? navigator = Navigator.maybeOf(context);
+        
+        if (navigator != null && navigator.canPop()) {
+          navigator.pop();
+          return;
+        }
+
         final now = DateTime.now();
         if (_lastBackPressTime == null || 
             now.difference(_lastBackPressTime!) > const Duration(seconds: 2)) {
