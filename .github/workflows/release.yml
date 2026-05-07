@@ -32,6 +32,7 @@ jobs:
         run: flutter pub get
 
       - name: Build Customer APK
+        if: github.repository == 'blissfruitz2006-arch/blissfruitz'
         run: |
           flutter build apk --release --flavor customer \
             --dart-define=APP_FLAVOR=customer \
@@ -39,6 +40,7 @@ jobs:
           mv build/app/outputs/flutter-apk/app-customer-release.apk build/app/outputs/flutter-apk/blissfruitz-customer.apk
 
       - name: Build Rider APK
+        if: github.repository == 'blissfruitz2006-arch/blissfruitz-rider'
         run: |
           flutter build apk --release --flavor rider \
             --dart-define=APP_FLAVOR=rider \
@@ -58,10 +60,6 @@ jobs:
           body: |
             ## BlissFruitz Release ${{ github.ref_name }}
             
-            This release contains updated APKs for both Customer and Rider applications.
-            
-            ### Installation
-            - **Customer App**: [blissfruitz-customer.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/blissfruitz-customer.apk)
-            - **Rider App**: [blissfruitz-rider.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/blissfruitz-rider.apk)
+            This release contains the latest update for the application.
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
