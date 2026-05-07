@@ -1,13 +1,18 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:ota_update/ota_update.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:blissfruitz/config/flavor_config.dart';
 import 'package:blissfruitz/models/settings.dart';
 import 'package:blissfruitz/config/routes.dart';
 import 'logger_service.dart';
 
 class UpdateService {
-  /// Checks for a new version from self-hosted settings (Supabase)
+  static const String _githubApiUrl = 'https://api.github.com/repos/blissfruitz2006-arch/blissfruitz/releases/latest';
+
+  /// Checks for a new version from GitHub Releases
   static Future<void> checkForUpdate() async {
     if (kIsWeb) return;
     
@@ -19,13 +24,41 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version;
       
-      // 2. Get latest version from Supabase
-      const updateSettings = AppUpdateSettings(latestVersion: '1.0.0');
+      // 2. Fetch latest release from GitHub
+      debugPrint('📡 Checking GitHub for updates...');
+      final response = await http.get(Uri.parse(_githubApiUrl));
       
-      // 3. Compare versions
-      if (_isUpdateAvailable(currentVersion, updateSettings.latestVersion)) {
-        if (updateSettings.apkUrl != null) {
-          _showUpdateDialog(updateSettings);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final latestTag = data['tag_name'] as String; // e.g., "v1.0.1"
+        final latestVersion = latestTag.replaceAll('v', '');
+        
+        debugPrint('📊 Current version: $currentVersion, Latest on GitHub: $latestVersion');
+
+        // 3. Compare versions
+        if (_isUpdateAvailable(currentVersion, latestVersion)) {
+          // 4. Find the correct APK for the current flavor
+          final assets = data['assets'] as List;
+          final flavorKey = FlavorConfig.isRider ? 'rider' : 'customer';
+          
+          final apkAsset = assets.firstWhere(
+            (a) => (a['name'] as String).contains(flavorKey) && (a['name'] as String).endsWith('.apk'),
+            orElse: () => null,
+          );
+
+          if (apkAsset != null) {
+            final downloadUrl = apkAsset['browser_download_url'] as String;
+            final body = data['body'] as String?;
+            
+            _showUpdateDialog(AppUpdateSettings(
+              latestVersion: latestVersion,
+              apkUrl: downloadUrl,
+              updateNotes: body,
+              forceUpdate: body?.contains('FORCE_UPDATE') ?? false,
+            ));
+          }
+        } else {
+          debugPrint('✅ App is up to date.');
         }
       }
     } catch (e) {

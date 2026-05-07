@@ -1,9 +1,9 @@
-name: Build & Release APK
+name: Build & Release APKs
 
 on:
   push:
     tags:
-      - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+      - 'v*'
 
 permissions:
   contents: write
@@ -25,25 +25,43 @@ jobs:
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.29.0' # Matches the latest stable used in the project
+          flutter-version: '3.29.0'
           channel: 'stable'
 
       - name: Install dependencies
         run: flutter pub get
 
-      - name: Build APK
-        run: flutter build apk --release --split-per-abi
+      - name: Build Customer APK
+        run: |
+          flutter build apk --release --flavor customer \
+            --dart-define=APP_FLAVOR=customer \
+            --no-tree-shake-icons
+          mv build/app/outputs/flutter-apk/app-customer-release.apk build/app/outputs/flutter-apk/blissfruitz-customer.apk
+
+      - name: Build Rider APK
+        run: |
+          flutter build apk --release --flavor rider \
+            --dart-define=APP_FLAVOR=rider \
+            --no-tree-shake-icons
+          mv build/app/outputs/flutter-apk/app-rider-release.apk build/app/outputs/flutter-apk/blissfruitz-rider.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk
-            build/app/outputs/flutter-apk/app-arm64-v8a-release.apk
-            build/app/outputs/flutter-apk/app-x86_64-release.apk
+            build/app/outputs/flutter-apk/blissfruitz-customer.apk
+            build/app/outputs/flutter-apk/blissfruitz-rider.apk
           name: Release ${{ github.ref_name }}
           tag_name: ${{ github.ref }}
           draft: false
           prerelease: false
+          body: |
+            ## BlissFruitz Release ${{ github.ref_name }}
+            
+            This release contains updated APKs for both Customer and Rider applications.
+            
+            ### Installation
+            - **Customer App**: [blissfruitz-customer.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/blissfruitz-customer.apk)
+            - **Rider App**: [blissfruitz-rider.apk](https://github.com/${{ github.repository }}/releases/download/${{ github.ref_name }}/blissfruitz-rider.apk)
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

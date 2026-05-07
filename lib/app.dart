@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/flavor_config.dart';
 import 'config/theme_customer.dart';
@@ -15,6 +16,7 @@ import 'services/update_service.dart';
 import 'package:blissfruitz/services/initialization_service.dart';
 import 'package:blissfruitz/config/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'widgets/double_back_exit_wrapper.dart';
 
 class BlissFruitzApp extends ConsumerStatefulWidget {
   const BlissFruitzApp({super.key});
@@ -120,7 +122,7 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
                 const SizedBox(height: 32),
                 Text(
                   'BlissFruitz',
-                  style: GoogleFonts.outfit(
+                  style: TextStyle(
                     fontSize: 32,
                     fontWeight: FontWeight.w900,
                     color: _error != null ? AppTheme.error : AppTheme.primary,
@@ -144,7 +146,7 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
                         Text(
                           'Something went wrong during startup.',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.beVietnamPro(
+                          style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -153,7 +155,7 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
                         Text(
                           _error!,
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.beVietnamPro(
+                          style: TextStyle(
                             fontSize: 12,
                             color: isDark ? Colors.white54 : Colors.black45,
                           ),
@@ -175,7 +177,7 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
                 if (_error == null)
                   Text(
                     _loadingMessage,
-                    style: GoogleFonts.beVietnamPro(
+                    style: TextStyle(
                       fontSize: 12,
                       color: isDark ? Colors.white54 : Colors.black45,
                       fontWeight: FontWeight.w500,
@@ -198,13 +200,16 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
         systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
         systemNavigationBarDividerColor: Colors.transparent,
       ),
-      child: MaterialApp.router(
-        title: FlavorConfig.appName,
-        debugShowCheckedModeBanner: false,
-        theme: lightTheme,
-        darkTheme: darkTheme,
-        themeMode: themeMode,
-        routerConfig: router,
+      child: DoubleBackExitWrapper(
+        enabled: !kIsWeb, // Only enable on mobile
+        child: MaterialApp.router(
+          title: FlavorConfig.appName,
+          debugShowCheckedModeBanner: false,
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: themeMode,
+          routerConfig: router,
+        ),
       ),
     );
   }

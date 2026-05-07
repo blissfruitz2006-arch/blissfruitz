@@ -23,6 +23,8 @@ class MobileBottomNav extends ConsumerWidget {
     if (isRider) {
       if (location.startsWith('/rider/home')) {
         currentIndex = 0;
+      } else if (location.startsWith('/rider/order')) {
+        currentIndex = 1; // Highlight Deliveries when viewing an order
       } else if (location.startsWith('/rider/earnings')) {
         currentIndex = 2;
       } else if (location.startsWith('/rider/profile')) {
@@ -137,7 +139,7 @@ class MobileBottomNav extends ConsumerWidget {
           HapticFeedback.selectionClick();
           
           final routes = isRider 
-            ? ['/rider/home', '/rider/earnings', '/rider/earnings', '/rider/profile']
+            ? ['/rider/home', '/rider/home', '/rider/earnings', '/rider/profile']
             : ['/', '/shop', '/cart', '/profile'];
           
           if (index == 3 && !state.uri.toString().contains('login')) {
@@ -164,17 +166,24 @@ class MobileBottomNav extends ConsumerWidget {
                     scale: item.isActive ? 1.0 : 0.0,
                     duration: const Duration(milliseconds: 300),
                     child: Container(
-                      width: 40,
+                      width: 44,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
+                        color: colorScheme.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withValues(alpha: 0.1),
+                            blurRadius: 8,
+                            spreadRadius: 1,
+                          ),
+                        ],
                       ),
                     ),
                   ),
                   Icon(
                     item.isActive ? item.activeIcon : item.icon,
-                    size: MediaQuery.sizeOf(context).width < 280 ? 20 : 24,
+                    size: MediaQuery.sizeOf(context).width < 280 ? 20 : 26,
                     color: item.isActive
                         ? colorScheme.primary
                         : colorScheme.onSurfaceVariant.withValues(alpha: 0.6),

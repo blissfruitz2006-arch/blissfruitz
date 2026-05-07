@@ -6,35 +6,46 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'config/supabase_config.dart';
 import 'app.dart';
 
+import 'dart:async';
+
 void main() async {
+  // Ensure we catch everything from the start
   WidgetsFlutterBinding.ensureInitialized();
   
-  if (kIsWeb) {
-    setPathUrlStrategy();
-  }
-  
-  // Environment Variables
-  // Prefer --dart-define (compile-time, secure for production builds)
-  // Fallback to dotenv file for local development convenience
-  if (SupabaseConfig.supabaseUrl.isEmpty) {
-    try {
-      debugPrint('📦 Loading environment variables from dotenv...');
-      await dotenv.load(fileName: "supabase_env.txt");
-      SupabaseConfig.setRuntimeValues(
-        url: dotenv.get('SUPABASE_URL', fallback: ''),
-        key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
-      );
-      debugPrint('✅ Environment variables loaded from dotenv.');
-    } catch (e) {
-      debugPrint('⚠️ No dotenv file found (expected in production): $e');
+  FlutterError.onError = (details) {
+    FlutterError.presentError(details);
+    debugPrint('🛑 FLUTTER ERROR: ${details.exception}');
+    if (kDebugMode) {
+      debugPrint(details.stack.toString());
     }
-  } else {
-    debugPrint('✅ Environment variables loaded from --dart-define.');
-  }
-  
-  runApp(
-    const ProviderScope(
-      child: BlissFruitzApp(),
-    ),
-  );
+  };
+
+  runZonedGuarded(() async {
+    if (kIsWeb) {
+      setPathUrlStrategy();
+    }
+    
+    // Environment Variables
+    try {
+      if (SupabaseConfig.supabaseUrl.isEmpty) {
+        debugPrint('📦 Loading environment variables from dotenv...');
+        await dotenv.load(fileName: "supabase_env.txt");
+        SupabaseConfig.setRuntimeValues(
+          url: dotenv.get('SUPABASE_URL', fallback: ''),
+          key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ Dotenv load error: $e');
+    }
+    
+    runApp(
+      const ProviderScope(
+        child: BlissFruitzApp(),
+      ),
+    );
+  }, (error, stack) {
+    debugPrint('🔥 FATAL UNCAUGHT ERROR: $error');
+    debugPrint(stack.toString());
+  });
 }

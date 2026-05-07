@@ -3,5 +3,5 @@ class FlavorConfig {
   static bool get isRider => flavor == 'rider';
   static bool get isCustomer => flavor == 'customer';
   static String get appName => isRider ? 'BlissFruitz Rider' : 'BlissFruitz';
-  static String get packageName => isRider ? 'com.blissfruitz.rider' : 'com.blissfruitz.app';
+  static String get packageName => isRider ? 'com.blissfruitz.rider' : 'com.blissfruitz.customer';
 }

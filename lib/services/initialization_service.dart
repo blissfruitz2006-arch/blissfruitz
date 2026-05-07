@@ -10,24 +10,31 @@ class InitializationService {
     debugPrint('🚀 Starting BlissFruitz initialization...');
     WidgetsFlutterBinding.ensureInitialized();
     
+    // Allow native engine to settle
+    await Future.delayed(const Duration(milliseconds: 200));
+
     // Global Error Handling
     _setupErrorHandling();
 
     // System UI Optimization
     _setupSystemUI();
 
-    // Environment variables are now loaded in main()
-
-
-
     // Database
     try {
-      debugPrint('🗄️ Initializing Supabase...');
+      debugPrint('🗄️ Initializing Supabase (Offline persistence enabled)...');
+      if (SupabaseConfig.supabaseUrl.isEmpty) {
+        debugPrint('⚠️ WARNING: Supabase URL is empty! App will likely crash or fail to load data.');
+      }
       await SupabaseConfig.initialize();
       debugPrint('✅ Supabase initialized.');
     } catch (e) {
       debugPrint('❌ Supabase initialization failed: $e');
-      rethrow; // Re-throw to prevent app from proceeding in a broken state
+      // If we are offline, we can still proceed if auth is cached
+      if (e.toString().contains('SocketException')) {
+        debugPrint('ℹ️ Offline mode detected during Supabase initialization.');
+      } else {
+        rethrow;
+      }
     }
 
     // Firebase (Push Notifications)
@@ -37,12 +44,12 @@ class InitializationService {
         await Firebase.initializeApp();
         debugPrint('✅ Firebase initialized.');
       } catch (e) {
-        debugPrint('⚠️ Firebase initialization failed: $e');
-        // Firebase failure is usually non-fatal for core app flow
+        debugPrint('⚠️ Firebase initialization skipped: $e');
+        debugPrint('ℹ️ App will continue without push notifications.');
       }
     }
     
-    debugPrint('🏁 Initialization complete.');
+    debugPrint('🏁 Initialization complete. Offline mode ready.');
   }
 
   static void _setupErrorHandling() {

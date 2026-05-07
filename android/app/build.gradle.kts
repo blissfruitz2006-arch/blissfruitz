@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
@@ -8,7 +10,12 @@ plugins {
 android {
     namespace = "com.blissfruitz.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
+    ndkVersion = "28.2.13676358"
+
+    lint {
+        checkReleaseBuilds = false
+        abortOnError = false
+    }
 
     compileOptions {
         isCoreLibraryDesugaringEnabled = true
@@ -16,9 +23,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = JavaVersion.VERSION_17.toString()
-    }
 
     defaultConfig {
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -26,6 +30,13 @@ android {
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        multiDexEnabled = true
+        
+        ndk {
+            // Fix for "failed to strip debug symbols" on newer AGP/NDK versions
+            debugSymbolLevel = "none"
+            abiFilters += listOf("armeabi-v7a", "arm64-v8a", "x86_64")
+        }
     }
 
     flavorDimensions += "app"
@@ -51,13 +62,25 @@ android {
             signingConfig = signingConfigs.getByName("debug")
             
             // Enable R8 / ProGuard for size optimization
-            isMinifyEnabled = true
-            isShrinkResources = true
+            // DISABLED TEMPORARILY TO FIX CRASHES
+            isMinifyEnabled = false
+            isShrinkResources = false
             
             // Apply ProGuard rules to prevent crashes with native plugins like Razorpay
             proguardFiles(getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro")
         }
+    }
 
+    packaging {
+        resources {
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+        }
+    }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 

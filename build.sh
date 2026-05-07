@@ -78,12 +78,10 @@ echo -e "${BLUE}==============================================${NC}"
 if [ "$PLATFORM" == "apk" ]; then
     # Optimized APK build (Split per ABI reduces size by ~60% per file)
     flutter build apk --release --flavor $FLAVOR --dart-define=APP_FLAVOR=$FLAVOR \
-        --split-per-abi \
-        --obfuscate --split-debug-info=build/app/outputs/symbols
+        --split-per-abi
 elif [ "$PLATFORM" == "appbundle" ]; then
     # App Bundle is naturally optimized by Google Play
-    flutter build appbundle --release --flavor $FLAVOR --dart-define=APP_FLAVOR=$FLAVOR \
-        --obfuscate --split-debug-info=build/app/outputs/symbols
+    flutter build appbundle --release --flavor $FLAVOR --dart-define=APP_FLAVOR=$FLAVOR
 elif [ "$PLATFORM" == "linux" ]; then
     # Linux supports obfuscation
     flutter build linux --release --dart-define=APP_FLAVOR=$FLAVOR \

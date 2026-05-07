@@ -55,6 +55,13 @@
 
 # Protobuf
 -dontwarn com.google.protobuf.**
+-keep class com.google.protobuf.** { *; }
+
+# Firebase
+-keep class com.google.firebase.** { *; }
+-dontwarn com.google.firebase.**
+-keep class com.google.android.gms.internal.** { *; }
+-dontwarn com.google.android.gms.internal.**
 
 # Keep standard library attributes
 -keepattributes Signature
