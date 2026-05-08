@@ -52,6 +52,7 @@ import '../screens/rider/earnings_screen.dart';
 import '../screens/rider/rider_profile_screen.dart';
 import '../screens/public/tracking/live_tracking_screen.dart';
 import '../screens/public/delivery_area_screen.dart';
+import '../screens/public/chat_screen.dart';
 
 import '../models/product.dart';
 import '../services/auth_service.dart';
@@ -357,6 +358,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: '/settings',
             builder: (context, state) => const PublicSettingsScreen(),
+          ),
+          GoRoute(
+            path: '/chat',
+            builder: (context, state) => const ChatScreen(),
           ),
           GoRoute(
             path: '/order-history',

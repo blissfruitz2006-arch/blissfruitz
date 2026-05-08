@@ -201,12 +201,6 @@ class _PublicSettingsScreenState extends ConsumerState<PublicSettingsScreen> {
               onTap: () => context.push('/settings/faq'),
             ),
             _buildSettingTile(
-              icon: Icons.chat_bubble_outline_rounded,
-              title: 'Live Chat',
-              subtitle: 'AI Chat Coming Soon',
-              onTap: () => _showComingSoon(context, 'AI Assistant Chat'),
-            ),
-            _buildSettingTile(
               icon: Icons.report_problem_outlined,
               title: 'Report a Problem',
               onTap: () => _showReportDialog(context, user),

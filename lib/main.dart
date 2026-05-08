@@ -10,17 +10,17 @@ import 'dart:async';
 
 void main() async {
   // Ensure we catch everything from the start
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  FlutterError.onError = (details) {
-    FlutterError.presentError(details);
-    debugPrint('🛑 FLUTTER ERROR: ${details.exception}');
-    if (kDebugMode) {
-      debugPrint(details.stack.toString());
-    }
-  };
-
   runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    
+    FlutterError.onError = (details) {
+      FlutterError.presentError(details);
+      debugPrint('🛑 FLUTTER ERROR: ${details.exception}');
+      if (kDebugMode) {
+        debugPrint(details.stack.toString());
+      }
+    };
+
     if (kIsWeb) {
       setPathUrlStrategy();
     }
@@ -29,7 +29,7 @@ void main() async {
     try {
       if (SupabaseConfig.supabaseUrl.isEmpty) {
         debugPrint('📦 Loading environment variables from dotenv...');
-        await dotenv.load(fileName: "supabase_env.txt");
+        await dotenv.load(fileName: "assets/supabase_env.txt");
         SupabaseConfig.setRuntimeValues(
           url: dotenv.get('SUPABASE_URL', fallback: ''),
           key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),

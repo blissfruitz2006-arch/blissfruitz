@@ -31,6 +31,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Create placeholder env files
+        run: |
+          mkdir -p assets
+          touch assets/supabase_env.txt
+          touch assets/env_config.txt
+
       - name: Build Customer APK
         if: github.repository == 'blissfruitz2006-arch/blissfruitz'
         run: |
@@ -38,6 +44,7 @@ jobs:
             --dart-define=APP_FLAVOR=customer \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }} \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-customer-release.apk build/app/outputs/flutter-apk/blissfruitz-customer.apk
 
@@ -48,6 +55,7 @@ jobs:
             --dart-define=APP_FLAVOR=rider \
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }} \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-rider-release.apk build/app/outputs/flutter-apk/blissfruitz-rider.apk
 
@@ -60,7 +68,7 @@ jobs:
           tag_name: ${{ github.ref }}
           draft: false
           prerelease: false
-          body: "Official BlissFruitz Customer App Update."
+          body: "Official BlissFruitz Customer App Update.\n\nWhat's New:\n- 🚀 Improved Android 16 (and 15) compatibility for seamless updates.\n- 🤖 New AI Support Assistant for instant customer help.\n- ⚡ Performance optimizations and stability fixes."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

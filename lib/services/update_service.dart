@@ -24,7 +24,7 @@ class UpdateService {
     try {
       // 1. Get current version
       final packageInfo = await PackageInfo.fromPlatform();
-      final currentVersion = packageInfo.version;
+      final currentVersion = packageInfo.version.split('-').first;
       
       // 2. Fetch latest release from GitHub
       debugPrint('📡 Checking GitHub for updates...');
@@ -189,6 +189,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
       OtaUpdate().execute(
         widget.url,
         destinationFilename: fileName,
+        usePackageInstaller: true, // Use modern PackageInstaller API for Android 15/16
+        androidProviderAuthority: "${FlavorConfig.packageName}.fileprovider", // Explicit authority
       ).listen(
         (OtaEvent event) {
           if (!mounted) return;
@@ -216,11 +218,13 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
                 break;
               default:
                 _status = 'Status: ${event.status} ${event.value ?? ""}';
+                LoggerService.logInfo('Update status: ${event.status} value: ${event.value}');
                 break;
             }
           });
         },
         onError: (e) {
+          LoggerService.logError('OtaUpdate error: $e');
           if (mounted) {
             setState(() {
               _status = 'Error: $e';
@@ -228,7 +232,8 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
           }
         },
       );
-    } catch (e) {
+    } catch (e, stack) {
+      LoggerService.logError('OtaUpdate launch failed: $e', stackTrace: stack);
       if (mounted) {
         setState(() {
           _status = 'Failed to launch update: $e';

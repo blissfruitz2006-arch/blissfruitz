@@ -1,7 +1,7 @@
 name: blissfruitz
 description: "BlissFruitz — Premium Fresh Fruits E-Commerce App"
 publish_to: 'none'
-version: 1.0.1+1
+version: 1.0.2+2
 
 environment:
   sdk: ^3.11.4
@@ -61,7 +61,7 @@ dependencies:
   barcode: ^2.2.8
   flutter_dotenv: ^5.2.1
   flutter_html_table: 3.0.0-beta.2
-  ota_update: ^7.0.1
+  ota_update: ^7.1.0
   package_info_plus: ^8.1.1
   firebase_messaging: ^16.2.0
   flutter_local_notifications: ^21.0.0
@@ -82,3 +82,5 @@ flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/supabase_env.txt
+    - assets/env_config.txt

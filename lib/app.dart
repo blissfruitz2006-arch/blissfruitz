@@ -17,6 +17,7 @@ import 'package:blissfruitz/services/initialization_service.dart';
 import 'package:blissfruitz/config/theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'widgets/double_back_exit_wrapper.dart';
+import 'widgets/global_chat_toggle.dart';
 
 class BlissFruitzApp extends ConsumerStatefulWidget {
   const BlissFruitzApp({super.key});
@@ -208,9 +209,12 @@ class _BlissFruitzAppState extends ConsumerState<BlissFruitzApp> {
         themeMode: themeMode,
         routerConfig: router,
         builder: (context, child) {
-          return DoubleBackExitWrapper(
-            enabled: !kIsWeb,
-            child: child ?? const SizedBox.shrink(),
+          return GlobalChatToggle(
+            router: router,
+            child: DoubleBackExitWrapper(
+              enabled: !kIsWeb,
+              child: child ?? const SizedBox.shrink(),
+            ),
           );
         },
       ),

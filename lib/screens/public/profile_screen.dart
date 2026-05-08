@@ -197,6 +197,15 @@ class ProfileScreen extends ConsumerWidget {
       child: Column(
         children: [
           GestureDetector(
+            onTap: () => context.push('/chat'),
+            child: _buildMenuItem(
+              context,
+              Icons.auto_awesome_rounded,
+              'AI Chat Support',
+              iconColor: AppTheme.primary,
+            ),
+          ),
+          GestureDetector(
             onTap: () => context.push('/settings'),
             child: _buildMenuItem(
               context,

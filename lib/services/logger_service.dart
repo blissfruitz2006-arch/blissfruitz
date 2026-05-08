@@ -8,6 +8,9 @@ enum LogLevel { info, warning, error, critical }
 class LoggerService {
   static SupabaseClient? get _supabase {
     try {
+      if (!Supabase.instance.client.toString().contains('SupabaseClient')) {
+        return null;
+      }
       return SupabaseConfig.client;
     } catch (_) {
       return null;
