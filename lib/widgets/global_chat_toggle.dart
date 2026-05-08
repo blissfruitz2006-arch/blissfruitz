@@ -91,7 +91,13 @@ class _GlobalChatToggleState extends State<GlobalChatToggle> {
                               ),
                             ),
                             // The Chat Screen content
-                            const Expanded(child: ChatScreen(isEmbedded: true)),
+                            Expanded(
+                              child: Navigator(
+                                onGenerateRoute: (settings) => MaterialPageRoute(
+                                  builder: (context) => const ChatScreen(isEmbedded: true),
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

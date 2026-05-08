@@ -45,6 +45,7 @@ jobs:
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }} \
+            --dart-define=NVIDIA_MODEL=meta/llama-3.1-8b-instruct \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-customer-release.apk build/app/outputs/flutter-apk/blissfruitz-customer.apk
 
@@ -56,6 +57,7 @@ jobs:
             --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
             --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
             --dart-define=NVIDIA_API_KEY=${{ secrets.NVIDIA_API_KEY }} \
+            --dart-define=NVIDIA_MODEL=meta/llama-3.1-8b-instruct \
             --no-tree-shake-icons
           mv build/app/outputs/flutter-apk/app-rider-release.apk build/app/outputs/flutter-apk/blissfruitz-rider.apk
 

@@ -29,14 +29,21 @@ void main() async {
     try {
       if (SupabaseConfig.supabaseUrl.isEmpty) {
         debugPrint('📦 Loading environment variables from dotenv...');
-        await dotenv.load(fileName: "assets/supabase_env.txt");
-        SupabaseConfig.setRuntimeValues(
-          url: dotenv.get('SUPABASE_URL', fallback: ''),
-          key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
-        );
+        try {
+          await dotenv.load(fileName: "assets/supabase_env.txt");
+          
+          if (dotenv.isInitialized) {
+            SupabaseConfig.setRuntimeValues(
+              url: dotenv.get('SUPABASE_URL', fallback: ''),
+              key: dotenv.get('SUPABASE_ANON_KEY', fallback: ''),
+            );
+          }
+        } catch (e) {
+          debugPrint('⚠️ Dotenv file load failed: $e. Using fallback defaults.');
+        }
       }
     } catch (e) {
-      debugPrint('⚠️ Dotenv load error: $e');
+      debugPrint('⚠️ General environment initialization error: $e');
     }
     
     runApp(

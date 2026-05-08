@@ -184,13 +184,15 @@ class _DownloadProgressDialogState extends State<_DownloadProgressDialog> {
 
   void _startDownload() {
     try {
-      final String fileName = FlavorConfig.isRider ? 'blissfruitz-rider.apk' : 'blissfruitz-customer.apk';
+      // Simple filename for better compatibility across Android versions
+      const String fileName = 'update.apk';
       
       OtaUpdate().execute(
         widget.url,
         destinationFilename: fileName,
-        usePackageInstaller: true, // Use modern PackageInstaller API for Android 15/16
-        androidProviderAuthority: "${FlavorConfig.packageName}.fileprovider", // Explicit authority
+        // usePackageInstaller: true can cause issues on some devices/OS versions; 
+        // using default behavior for broader compatibility.
+        androidProviderAuthority: "${FlavorConfig.packageName}.fileprovider",
       ).listen(
         (OtaEvent event) {
           if (!mounted) return;
