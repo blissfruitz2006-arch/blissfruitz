@@ -1,7 +1,7 @@
 name: blissfruitz
 description: "BlissFruitz — Premium Fresh Fruits E-Commerce App"
 publish_to: 'none'
-version: 1.0.4+4
+version: 1.0.7+8
 
 environment:
   sdk: ^3.11.4
